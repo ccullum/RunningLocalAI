@@ -56,7 +56,8 @@ To run this project locally, you will need:
 - [ ] Integrate local system commands (e.g., opening apps, checking weather).
 
 ## 📬 Contact
-Created by **Christopher Cullum** * LinkedIn: https://www.linkedin.com/in/christophercullum/
+Created by **Christopher Cullum** 
+* LinkedIn: https://www.linkedin.com/in/christophercullum/
 * Portfolio/Website: https://sites.google.com/yemtech.com/christophercullum-portfolio/home
 
 *Currently open to new opportunities in AI, Python Development, and Software Engineering!*
