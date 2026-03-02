@@ -60,4 +60,4 @@ Created by **Christopher Cullum**
 * LinkedIn: https://www.linkedin.com/in/christophercullum/
 * Portfolio/Website: https://sites.google.com/yemtech.com/christophercullum-portfolio/home
 
-*Currently open to new opportunities in AI, Python Development, and Software Engineering!*
+*Currently open to new opportunities in AI and Software Engineering!*
