@@ -4,3 +4,15 @@
 
 # LangGraph
 .langgraph_api/
+
+# Ignore Python environments and cache
+.venv/
+pycache/
+
+# Ignore large AI model files
+*.gguf
+*.bin
+models/
+
+# Ignore sensitive files
+*.env

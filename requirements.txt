@@ -1,0 +1,10 @@
+langchain==0.2.16
+langchain-core==0.2.38
+langchain-community==0.2.16
+langchain-huggingface==0.0.3
+langchain-openai==0.1.23
+transformers 
+accelerate 
+python-dotenv 
+requests
+pandas       #for analysis purposes

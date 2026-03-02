@@ -1,0 +1,5 @@
+Model,Time (Seconds),Tokens Generated,Speed (TPS),Raw Output
+ministral-3-3b,3.75,96,25.59,"There are **7 continents** recognized by most modern geographers: |  | 1. **Africa** | 2. **Antarctica** | 3. **Asia** | 4. **Europe** | 5. **North America** | 6. **South America** | 7. **Australia (Oceania)** |  | Some classifications group **Europe and Asia** into a single continent (**Eurasia**), reducing the count to **6**. However, the standard seven-continent model is widely used today."
+gemma-2-9b,0.88,4,4.53,7
+phi-4,8.56,40,4.67,"There are seven continents on Earth. They are Africa, Antarctica, Asia, Europe, North America, South America, and Australia (sometimes referred to as Oceania when including the Pacific islands)."
+gpt-oss-20b,5.67,31,5.46,There are **seven** continents.
