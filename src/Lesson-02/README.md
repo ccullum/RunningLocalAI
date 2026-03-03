@@ -3,13 +3,13 @@
 This module upgrades the AI's capabilities.  Here are my goals for this lesson:
 * Implementing streaming responses. Instead of waiting for the entire response to generate before displaying it, these scripts handle data chunks in real-time, significantly improving the user experience.
 * I will continue to keep the scripts platform agnostic.
-* Implement a Model wrapper that will handle any model in a simlar fashion.
+* Implement a Model wrapper that will handle any model in a similar fashion.
 * Implement a simple persona state.  This will set a Deterministic/Zero-Shot personality or Instruction-Following/Persona-Based.
 
 The prompt I am using for testing is: *What is the primary benefit of a microservices architecture?*
 
 ### File Breakdown:
-* **`01-StreamResponse.py`**: The core implementation for requesting and printing a streamed response from the local Language Model.  This file uses the mistralai/ministral-3-3b LM.  It will dynamicall load the model, set the prompt, and finally run the prompt with first the CLEAN persona then the JARVIS persona.
+* **`01-StreamResponse.py`**: The core implementation for requesting and printing a streamed response from the local Language Model.  This file uses the mistralai/ministral-3-3b LM.  It will dynamically load the model, set the prompt, and finally run the prompt with first the CLEAN persona then the JARVIS persona.
 The results are from mistralai/ministral-3-3b are interesting.  The CLEAN persona appears more verbose:
 ![StreamResponse-A](../../assets/images/Lesson-02/StreamResponse-A.png)
 
@@ -22,7 +22,7 @@ The results are from mistralai/ministral-3-3b are interesting.  The CLEAN person
   * qwen2.5-7b-instruct
 This script will be tracking 5 metrics:
   * *Mode:* How does the LM respond between the two persona's
-  * *Total Time:* Total latency. This helps you identify if the model spent too much time "thinking" (TTFT - Time to First Token) before actually responding.
+  * *Total Time:* Total latency. This helps you identify if the model spent too much time "thinking" (TTFT - Time to First Token) before responding.
   * *Time to First Token (TTFT):* This is your "System Responsiveness." If a model has a high TTFT but a high TPS, it’s like a car with a slow starter motor but a high top speed. For a Jarvis interface, a low TTFT is more important than raw speed.
   * *Tokens:* Measures the model's "verbosity." SLMs often fluctuate here; a model that takes 200 tokens to explain a 50-token concept is inefficient for a real-time Jarvis.
   * *Tokens per Second (TPS):* The "Engine Speed." For a voice-based Jarvis, you generally need >15 TPS for it to feel natural and not laggy.
