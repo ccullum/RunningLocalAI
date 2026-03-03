@@ -20,6 +20,7 @@ The results are from mistralai/ministral-3-3b are interesting.  The CLEAN person
   * openai/gpt-oss-20b
   * phi-3-mini-4k-instruct
   * qwen2.5-7b-instruct
+
 This script will be tracking 5 metrics:
   * *Mode:* How does the LM respond between the two persona's
   * *Total Time:* Total latency. This helps you identify if the model spent too much time "thinking" (TTFT - Time to First Token) before responding.
@@ -29,11 +30,12 @@ This script will be tracking 5 metrics:
 
 ![StreamTest-A](../../assets/images/Lesson-02/StreamTest-A.png)
 
-* ***Lesson Learned 1:*** One issue I ran into was there was too much initial code for tracking the test results baked into the model wrapper, so I broke out the tracking of tests into a TestResult class.
-* ***Lesson Learned 2:*** Another issue I ran into was prompt caching. The second query to the same model with the same prompt would return much faster than the first prompt.  By adding the uuid to each prompt (aka nonce injection), I was able to defeat the KV-Cache issue.
-* ***Lesson Learned 3:*** As this was tracking Total Time, the first time a model loaded hit the first prompt by increasing the Total Time due to loading of the model.  I created a warm_up method that would load the model and send a simple prompt.  Once this returned, I was assured that the subsequent prompts would not be impacted by this issue.
+  * ***Lesson Learned 1:*** One issue I ran into was there was too much initial code for tracking the test results baked into the model wrapper, so I broke out the tracking of tests into a TestResult class.
+  * ***Lesson Learned 2:*** Another issue I ran into was prompt caching. The second query to the same model with the same prompt would return much faster than the first prompt.  By adding the uuid to each prompt (aka nonce injection), I was able to defeat the KV-Cache issue.
+  * ***Lesson Learned 3:*** As this was tracking Total Time, the first time a model loaded hit the first prompt by increasing the Total Time due to loading of the model.  I created a warm_up method that would load the model and send a simple prompt.  Once this returned, I was assured that the subsequent prompts would not be impacted by this issue.
 
-* **`03-AnalyzeStreamTest.py`**: Now that I am recording the performance of multiple models in multiple modes, I wanted to perform a quantitative analysis of this data.
+* **`03-AnalyzeStreamTest.py`**: Now that I am recording the performance of multiple models in multiple modes, I want to perform a quantitative analysis of this data.
+
 To help me with this, for each model that I have tested against, I have added the corresponding Total VRAM footprint as well as the Active portions of weights used per token:
   * "google/gemma-2-9b": {"total": 9.24, "active": 9.24}
   * "llama-3.2-3b-instruct": {"total": 3.21, "active": 3.21}
@@ -41,13 +43,17 @@ To help me with this, for each model that I have tested against, I have added th
   * "openai/gpt-oss-20b": {"total": 21.00, "active": 4.00}
   * "phi-3-mini-4k-instruct": {"total": 3.82, "active": 3.82}
   * "qwen2.5-7b-instruct": {"total": 7.61, "active": 7.61}
+
 With this added data, I will be calculating:
   * Compute Efficiency = TPS/Active - Is the 'active' part of the model fast? (High score = well-optimized architecture/kernels) 
   * Resource ROI = TPS/Total - How much speed do I get for the VRAM I'm sacrificing? (High score = high value for low-resource hardware)
   * Density Score = Tokens/Total Time - Penalizes models with high TTFT or long pauses.
+
 ![AnalyzeStreamTest-A](../../assets/images/Lesson-02/AnalyzeStreamTest-A.png)
+
 Lastly, I will be calculating how much the personas are impacting performance.  The closer to 0 the Disparity indicates the CLEAN mode and the JARVIS mode are close in performance.  A Disparity that is farther from 0 indicates a much larger in difference and performance one persona has over the other
   * Disparity = ((Density Score:Jarvis - Density Score:Clean)/Density Score:Clean)*100
+
 ![AnalyzeStreamTest-B](../../assets/images/Lesson-02/AnalyzeStreamTest-B.png)
 
 * **`04-RecommendationTest.py`**: Based on the quantitative analysis, which of the Language Models I am testing should I recommend to others, based on similar hardware requirements.  For each model, I will be comparing Disparity, TTFT, TPS, and model Total Time:
@@ -56,5 +62,6 @@ Lastly, I will be calculating how much the personas are impacting performance.  
   * If the Jarvis TPS < 20: Responses will be too laggy
   * If the models Total > 15 and Jarvis TPS < 30: Current VRAM requirements are too high
   * Else: This model is recommended
-![RecomendationTest-A](../../assets/images/Lesson-02/RecommendationTest-A.png)
+
+![RecomendationTest-A](../../assets/images/Lesson-02/RecomendationTest-A.png)
 
