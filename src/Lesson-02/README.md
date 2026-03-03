@@ -33,9 +33,10 @@ This script will be tracking 5 metrics:
 
 ![StreamTest-A](../../assets/images/Lesson-02/StreamTest-A.png)
 
-  * ***Lesson Learned 1:*** One issue I ran into was there was too much initial code for tracking the test results baked into the model wrapper, so I broke out the tracking of tests into a TestResult class.
-  * ***Lesson Learned 2:*** Another issue I ran into was prompt caching. The second query to the same model with the same prompt would return much faster than the first prompt.  By adding the uuid to each prompt (aka nonce injection), I was able to defeat the KV-Cache issue.
-  * ***Lesson Learned 3:*** As this was tracking Total Time, the first time a model loaded hit the first prompt by increasing the Total Time due to loading of the model.  I created a warm_up method that would load the model and send a simple prompt.  Once this returned, I was assured that the subsequent prompts would not be impacted by this issue.
+   * ***Lesson Learned 1:*** One issue I ran into was there was too much initial code for tracking the test results baked into the model wrapper, so I broke out the tracking of tests into a TestResult class.
+   * ***Lesson Learned 2:*** Another issue I ran into was prompt caching. The second query to the same model with the same prompt would return much faster than the first prompt.  By adding the uuid to each prompt (aka nonce injection), I was able to defeat the KV-Cache issue.
+   * ***Lesson Learned 3:*** As this was tracking Total Time, the first time a model loaded hit the first prompt by increasing the Total Time due to loading of the model.  I created a warm_up method that would load the model and send a simple prompt.  Once this returned, I was assured that the subsequent prompts would not be impacted by this issue.
+
 
 * **`03-AnalyzeStreamTest.py`**: Now that I am recording the performance of multiple models in multiple modes, I want to perform a quantitative analysis of this data.
 
