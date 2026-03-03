@@ -21,5 +21,5 @@ A script that takes the methods first developed in **`01-ConnectToLocal.py`** an
   * mistralai/ministral-3-3b
   * openai/gpt-oss-20b
   * qwen2.5-7b-instruct
-![InstrumentedTests-A](../../assets/images/Lesson-01/InstrumentedTests.png)
+![InstrumentedTests-A](../../assets/images/Lesson-01/InstrumentedTests-A.png)
   * ***Lesson Learned 1:***  When testing for simple connection and checking for timing, using a reasoning model should be avoided.
