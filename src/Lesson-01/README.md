@@ -2,7 +2,7 @@
 
 This module focuses on the foundational mechanics of connecting a Python environment to a locally hosted Language Model (via LM Studio) using OpenAI-compatible API endpoints.
 
-The prompt I am using for testing is: How many continents are there?
+The prompt I am using for testing is: *How many continents are there?*
 
 ### File Breakdown:
 * **`01-ConnectToLocal.py`**: 
