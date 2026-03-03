@@ -10,9 +10,9 @@ load_dotenv()
 llm = ChatOpenAI(
     base_url="http://localhost:1234/v1",
     api_key="lm-studio",
-    #model="mistralai/ministral-3-3b",
+    model="mistralai/ministral-3-3b",
     #model="microsoft/phi-4",
-    model="google/gemma-2-9b", 
+    #model="google/gemma-2-9b", 
     temperature=0.1
 )
  
