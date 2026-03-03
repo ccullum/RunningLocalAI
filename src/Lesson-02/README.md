@@ -5,12 +5,14 @@ This module upgrades the AI's capabilities.  Here are my goals for this lesson:
 * I will continue to keep the scripts platform agnostic.
 * Implement a Model wrapper that will handle any model in a similar fashion.
 * Implement a simple persona state.  This will set a Deterministic/Zero-Shot personality or Instruction-Following/Persona-Based.
+During this development, I wanted to start to track the performance of these Language Models and compare these over time.  The quantitative analysis starts with files **`03-AnalyzeStreamTest.py`** and **`04-RecommendationTest.py`**
 
 The prompt I am using for testing is: *What is the primary benefit of a microservices architecture?*
 
 ### File Breakdown:
 * **`01-StreamResponse.py`**: The core implementation for requesting and printing a streamed response from the local Language Model.  This file uses the mistralai/ministral-3-3b LM.  It will dynamically load the model, set the prompt, and finally run the prompt with first the CLEAN persona then the JARVIS persona.
 The results are from mistralai/ministral-3-3b are interesting.  The CLEAN persona appears more verbose:
+
 ![StreamResponse-A](../../assets/images/Lesson-02/StreamResponse-A.png)
 
 * **`02-StreamTest.py`**: A script that takes the methods first developed in **`01-StreamResponse.py`** and test it against 6 different Language Models.  This script dynamically loads each model and persona, then runs the test Prompt.  
