@@ -1,4 +1,4 @@
-# 🧠 RunningLocalAI (Jarvis-Like Assistant)
+# 🧠 Running Local AI (Jarvis-Like Assistant)
 
 My goal is to build a locally hosted, customized AI assistant that is as platform agnostic as possible. 
 
