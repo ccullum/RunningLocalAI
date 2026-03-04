@@ -7,4 +7,6 @@ transformers
 accelerate 
 python-dotenv 
 requests
-pandas       #for analysis purposes
+pandas          #for analysis purposes
+lancedb         #Vector Database option
+qdrant-client   #Vector Database option

@@ -16,3 +16,7 @@ models/
 
 # Ignore sensitive files
 *.env
+
+# Ignore Vector DB folders
+lancedb_data
+qdrant_data
