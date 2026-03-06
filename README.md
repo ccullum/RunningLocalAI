@@ -1,10 +1,13 @@
 # 🧠 Running Local AI (Jarvis-Like Assistant)
 
-My goal is to build a locally hosted, customized AI assistant that is as platform agnostic as possible. 
+My goal is to build a locally hosted, platform agnostic, and customized AI/Automation assistant.
 
 This project demonstrates the ability to deploy and interact with Language Models, both Large (LLM) and Small (SLM), entirely offline, ensuring complete data privacy and zero API costs. It serves as a foundation for a personalized "Jarvis-like" digital assistant.
 
 I intend to break out the development of this project based on Lesson's that anyone can follow.  In each SRC directory, I will document the purpose of each file, the lessons learned, and results of testing throughout this features implementation.  Each Lesson builds on knowledge gained from the previous Lesson though each can be run individually.  Please make sure to check out the Lesson folders, there is a lot to see that will help others understand why certain methods or processes were implemented.
+* [Lesson-01](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-01)
+* [Lesson-02](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-02)
+* [Lesson-03](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-03)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
@@ -35,7 +38,7 @@ To run this project locally, you will need:
 2. **Set up a virtual environment (Recommended):**
    ```bash
    python -m venv .venv
-   .\venv\Scripts\activate
+   .\.venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
@@ -53,9 +56,10 @@ To run this project locally, you will need:
 
 ## 🔮 Future Roadmap
 - [ ] Add RAG components.
-- [ ] Implement Text-to-Speech (TTS) for a true "Jarvis" voice experience.
 - [ ] Add conversation history and memory buffers.
+- [ ] Implement Text-to-Speech (TTS) for a true "Jarvis" voice experience.
 - [ ] Integrate local system commands (e.g., opening apps, checking weather).
+- [ ] Add Automation.
 
 ## 📬 Contact
 Created by **Christopher Cullum** 
