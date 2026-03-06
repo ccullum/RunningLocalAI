@@ -10,3 +10,4 @@ requests
 pandas          #for analysis purposes
 # lancedb         #Vector Database option.  Lesson-03 shows that Qdrant is a better choice on my local machine.
 qdrant-client   #Vector Database option
+tiktoken        #token-counting
