@@ -1,27 +1,29 @@
-# 📚 Lesson 01: Establishing Local Inference
+# 📚 Lesson 01: Establishing Local Inference & API Connectivity
 
-This module focuses on the foundational mechanics of connecting a Python environment to a locally hosted Language Model (via LM Studio) using OpenAI-compatible API endpoints.
+This module focuses on the foundational mechanics of connecting a Python environment to a locally hosted Language Model via LM Studio using OpenAI-compatible API endpoints. 
 
-The prompt I am using for testing is: *How many continents are there?*
+**Standard Testing Prompt:** *How many continents are there?*
 
-### File Breakdown:
-* **`01-ConnectToLocal.py`**: 
-The baseline script to establish a connection to the local server (localhost:1234) and send a standard, synchronous text prompt.
-  * ***Lesson Learned 1:*** One issue I ran into was the System Prompt, while I originally did not specify a system prompt nor did I setup up a system prompt in LM Studio, a system prompt was still being processed.  By switching from PromptTemplate to ChatPromptTemplate allowed me to specify a system prompt. 
+## 🛠️ File Breakdown & System Architecture
+
+### 1. `01-ConnectToLocal.py` (Baseline Connection & Prompting)
+The baseline script establishes a synchronous connection to the local inference server (localhost:1234) and transmits a standard text prompt.
+
 ![ConnectToLocal Prompt-A](../../assets/images/Lesson-01/ConnectToLocal-A.png)
 ![ConnectToLocal Prompt-B](../../assets/images/Lesson-01/ConnectToLocal-B.png)
 
-  * ***Lesson Learned 2:*** I do need to put a space in the " ", otherwise the models are inserting default system prompts.
+> **💡 Architectural Insights: Prompt Template Overrides**
+> * **Mitigating Implicit System Prompts:** Discovered that the local server processes default system instructions even when none are explicitly configured in the LM Studio environment. 
+> * **Template Refactoring:** Transitioned the architecture from a standard `PromptTemplate` to a `ChatPromptTemplate` to gain explicit control over system-level prompt boundaries.
+> * **Nullifying Defaults:** Determined that injecting a single space character (`" "`) successfully overrides and nullifies the default system prompts forced by the models.
 
-* **`02-InstrumentedTest.py`**: 
-A script that takes the methods first developed in **`01-ConnectToLocal.py`** and test it against 6 different Language Models.  This script dynamically loads each model and runs the test Prompt.  I have also added instrumentation (such as timing, logging, or error handling) to measure the performance and reliability of the local model's response.
-  * google/gemma-2-9b
-  * llama-3.2-3b-instruct
-  * microsoft/phi-4-mini-reasoning
-  * mistralai/ministral-3-3b
-  * openai/gpt-oss-20b
-  * qwen2.5-7b-instruct
+### 2. `02-InstrumentedTest.py` (Multi-Model Connectivity & Telemetry)
+Scales the baseline connection methodology to dynamically load and evaluate six distinct Language Models against the standard prompt. Integrates foundational telemetry—including execution timing, logging, and error handling—to measure the performance and reliability of the local model's response.
+
+**Models Evaluated:**
+`google/gemma-2-9b` | `llama-3.2-3b-instruct` | `microsoft/phi-4-mini-reasoning` | `mistralai/ministral-3-3b` | `openai/gpt-oss-20b` | `qwen2.5-7b-instruct`
 
 ![InstrumentedTests-A](../../assets/images/Lesson-01/InstrumentedTests-A.png)
- 
-  * ***Lesson Learned 1:***  When testing for simple connection and checking for timing, using a reasoning model should be avoided.
+
+> **💡 Architectural Insights: Benchmarking Methodology**
+> * **Model Selection Constraints:** Identified that reasoning models (such as `microsoft/phi-4-mini-reasoning`) inherently skew baseline latency and simple connection telemetry. Established an architectural guideline to exclude reasoning models when benchmarking pure API connection speeds and timing.
