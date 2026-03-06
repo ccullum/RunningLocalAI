@@ -8,6 +8,7 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson-01: Establishing Local Inference](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-01)
 * [Lesson-02: Streaming Responses & Analysis](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-02)
 * [Lesson-03: Local RAG Implementation & Performance Analysis](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-03)
+* [Lesson-04: Local Memory & Conversation Buffers](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-04)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
