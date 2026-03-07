@@ -32,7 +32,7 @@ To solve long-term amnesia, the architecture moved to Active Compute Memory, uti
 
 ### 1. Rolling Summary Strategy
 * **Mechanism:** An LLM background thread compresses old messages into a running system prompt.
-* **Result:** Semantically perfect recall, but introduced a massive **~3.0s compute penalty** per compression cycle, forcing the user to wait.
+* **Result:** Semantically perfect recall, but introduced a massive **~3.0s to 10.0s compute penalty** per compression cycle, forcing the user to wait.
 
 ### 2. Vectorized RAG Strategy & The Compound Query Problem
 * **Mechanism:** Every turn is embedded via Nomic and stored in an ephemeral Qdrant `:memory:` database.
@@ -41,17 +41,35 @@ To solve long-term amnesia, the architecture moved to Active Compute Memory, uti
 
 ---
 
-## 🎯 Phase 3 The Capstone: Dynamic Memory Manager (HRE)
+## 🎯 Phase 3: The Capstone: Dynamic Memory Manager (HRE)
 
 To bypass the limitations of individual buffers, I engineered a **Dynamic Memory Manager**. This router intercepts the user's prompt, classifies the intent, and autonomously routes the data through the most efficient pipeline.
 
 ### The HRE Routing Logic
-1. **The Fast Path (Turns 1-3):** Uses a basic Sliding Window. Bypasses all databases for **0.0s overhead**, giving a lightning-fast initial user experience.
+1. **The Fast Path (Turns 1-3):** Uses a basic Sliding Window. Bypasses all databases for **near 0.0s overhead**, giving a lightning-fast initial user experience.
 2. **The Narrative Path (Standard Chat > 3 Turns):** Triggers a background Rolling Summary compression to preserve VRAM while maintaining conversational flow.
 3. **The Deep Search Path (Recall Intent):** Solves the Vector Dilution bug via **Query Deconstruction**.
    * When the HRE detects a `RECALL` intent, it uses a tiny, zero-temperature LLM call to split compound questions into separate arrays (e.g., `["What is the user's name?", "What database are they using?"]`).
    * It queries Qdrant individually for each sub-question, merging the deduplicated results into the system prompt.
-   * **Result:** Flawless retrieval of complex historical data with only ~2.15s of combined routing and search overhead.
+   * **Result:** Flawless retrieval of complex historical data with minimal combined routing and search overhead.
+
+---
+
+## 🧪 Phase 4: Multi-Model Benchmarking & Agentic Reliability
+
+To prove the HRE's viability in production, I ran a fully automated hardware gauntlet testing 6 different local models (ranging from 3B to 20B parameters). 
+
+### 1. The "Negative Constraint Trap"
+During testing, an architectural flaw in Prompt Engineering was discovered. When the HRE router was given strict negative constraints (e.g., *"Do not use this for..."*, *"Use ONLY if..."*), **100% of the tested models failed the routing task.** * **The Cause:** Smaller models suffer from cognitive overload when processing strict negative boundaries. They panic and default to the safest, broadest category (in this case, `CHAT`), completely bypassing the Vector RAG database.
+* **The Fix:** Reverting to a positive-reinforcement, explicitly defined prompt restored agentic reliability.
+
+### 2. AI-Assisted Hardware Evaluation
+I developed an automated scoring script using Min-Max Normalization to grade models from 0-100 based on Fast Path Speed (TTFT), Throughput (TPS), Background Compute Overhead, and Agentic Reliability.
+
+**The Final Results:**
+* **The Speed King:** `mistralai/ministral-3-3b` dominated the Fast Path with a blazing **0.435s TTFT**, making it indistinguishable from cloud-hosted latency.
+* **The Unreliable Giants:** Models like `openai/gpt-oss-20b` failed basic intent classification, proving that parameter size does not equate to agentic logic. Popular models like `llama-3.2-3b-instruct` and `phi-3-mini-4k-instruct` also struggled with the strict zero-shot routing required to switch memory states.
+* **The Architect's Choice:** **`mistralai/ministral-3-3b`** achieved the highest overall score, successfully executing the HRE's complex background summarization and deconstruction tasks while maintaining exceptional throughput. 
 
 ## 🛠️ Conclusion
 This module proves that robust AI memory is not just about storing text; it is an active orchestration problem. By combining KV-cache windows, asynchronous LLM summarization, and deconstructed vector retrieval, the JARVIS system can maintain indefinite, accurate conversations without exhausting local hardware limits.
