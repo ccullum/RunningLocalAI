@@ -7,3 +7,6 @@ The code is structured progressively into "Lessons" to demonstrate the iterative
 ### Directory Structure:
 * **`Lesson-01/`**: Core connection mechanics and basic API testing.
 * **`Lesson-02/`**: Advanced response handling, including streaming outputs and data analysis.
+* **`Lesson-03/`**: Basic RAG and DB comparison
+* **`Lesson-04/`**: Adding memory along with benchmarking a Dynamic memory manager
+* **`Lesson-05/`**: Adding hearing to the AI and testing/comparing STT engines
