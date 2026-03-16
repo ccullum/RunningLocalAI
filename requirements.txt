@@ -7,7 +7,19 @@ transformers
 accelerate 
 python-dotenv 
 requests
-pandas          #for analysis purposes
-# lancedb         #Vector Database option.  Lesson-03 shows that Qdrant is a better choice on my local machine.
-qdrant-client   #Vector Database option
-tiktoken        #token-counting
+## Analysis ##
+tiktoken            #token-counting
+pandas              #for analysis purposes
+
+## Added for Lesson 4 ##
+#Vector Databases
+# lancedb           #Vector Database option.  Lesson-03 shows that Qdrant is a better choice on my local machine.
+qdrant-client       #Vector Database option
+
+## Added for Lesson 5 ##
+SpeechRecognition   #For Speech to Text
+pyaudio             #For Speech to Text
+#STT Engines
+faster-whisper      #For Speech to Text
+openai-whisper      #For Speech to Text
+PocketSphinx        #For Speech to Text
