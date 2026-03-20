@@ -1,12 +1,14 @@
-langchain==0.2.16
-langchain-core==0.2.38
-langchain-community==0.2.16
-langchain-huggingface==0.0.3
-langchain-openai==0.1.23
+keyboard
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-huggingface>=0.1.0
+langchain-openai>=0.2.0
 transformers 
 accelerate 
 python-dotenv 
 requests
+
 ## Analysis ##
 tiktoken            #token-counting
 pandas              #for analysis purposes
@@ -15,11 +17,21 @@ pandas              #for analysis purposes
 #Vector Databases
 # lancedb           #Vector Database option.  Lesson-03 shows that Qdrant is a better choice on my local machine.
 qdrant-client       #Vector Database option
+einops              #required for nomic
 
 ## Added for Lesson 5 ##
 SpeechRecognition   #For Speech to Text
 pyaudio             #For Speech to Text
 #STT Engines
 faster-whisper      #For Speech to Text
-openai-whisper      #For Speech to Text
-PocketSphinx        #For Speech to Text
+#openai-whisper      #For Speech to Text.  Lesson-05 shows that faster-whisper is the better choice
+#PocketSphinx        #For Speech to Text.  Lesson-05 shows that faster-whisper is the better choice
+
+##Added for Lesson 06
+#TTS Engines
+#pyttsx3             #Lesson 06 shows that piper-tts is the better choice
+piper-tts 
+#kokoro-onnx         #Lesson 06 shows that piper-tts is the better choice
+#sounddevice        #using pyaudio
+#soundfile          #using pyaudio
+numpy>=2.0.0       # Upgraded to support LangChain 0.3 and Kokoro V1.0

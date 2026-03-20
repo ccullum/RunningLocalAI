@@ -3,16 +3,7 @@ import uuid
 from openai import OpenAI
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
-
-# --- ANSI Color Codes for Visual Debugging ---
-class Colors:
-    USER = '\033[94m'       # Blue
-    JARVIS = '\033[92m'     # Green
-    ROUTER = '\033[95m'     # Magenta
-    METRICS = '\033[93m'    # Yellow
-    SYSTEM = '\033[96m'     # Cyan
-    ERROR = '\033[91m'      # Red
-    RESET = '\033[0m'       # Reset to default
+from core.colors import Colors
 
 class DynamicMemoryManager:
     def __init__(self, model_id: str, client: OpenAI):

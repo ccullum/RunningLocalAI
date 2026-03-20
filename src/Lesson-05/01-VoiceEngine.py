@@ -6,14 +6,7 @@ from openai import OpenAI
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 import uuid
-
-# ANSI Color Codes for Visual Debugging
-class Colors:
-    USER = '\033[94m'       # Blue
-    JARVIS = '\033[92m'     # Green
-    SYSTEM = '\033[96m'     # Cyan
-    ERROR = '\033[91m'      # Red
-    RESET = '\033[0m'       # Reset
+from core.colors import Colors
 
 # --- 1. The Local STT Engine ---
 class LocalAudioTranscriber:

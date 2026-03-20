@@ -1,0 +1,4 @@
+Timestamp,Tool,Payload_Length,TTFA_Sec
+03/18/2026 15:43,pyttsx3 (Legacy),135,0.15
+03/18/2026 15:43,Piper TTS (Neural Edge),135,inf
+03/18/2026 15:43,Kokoro-ONNX (Neural SOTA),135,inf

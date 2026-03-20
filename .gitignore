@@ -2,12 +2,16 @@
 # website: https://www.langchain.com/
 # website: https://www.langchain.com/langgraph
 
+# Standard Python Environments & Caches
+.venv/
+.venv - Copy/
+venv/
+__pycache__/
+*.pyc
+.env
+
 # LangGraph
 .langgraph_api/
-
-# Ignore Python environments and cache
-.venv/
-pycache/
 
 # Ignore large AI model files
 *.gguf
@@ -20,3 +24,24 @@ models/
 # Ignore Vector DB folders
 lancedb_data
 qdrant_data
+qdrant_storage/
+*.db
+*.sqlite
+
+# Downloaded Neural Models (TTS / STT)
+*.onnx
+*.bin
+*.pt
+*.safetensors
+piper-lessac.onnx.json
+
+# Temporary Audio Recordings
+*.wav
+*.mp3
+temp_capture.wav
+benchmark_audio.wav
+temp_pyttsx3.wav
+
+# 5. Pre-compiled Binaries & Archives
+piper/
+*.zip

@@ -5,12 +5,7 @@ from datetime import datetime
 import speech_recognition as sr
 import whisper
 from faster_whisper import WhisperModel
-
-# ANSI Colors
-class Colors:
-    SYSTEM = '\033[96m'
-    METRICS = '\033[93m'
-    RESET = '\033[0m'
+from core.colors import Colors
 
 def record_benchmark_audio(filename="benchmark_audio.wav"):
     """Records a single static audio file to ensure fair testing across all models."""
