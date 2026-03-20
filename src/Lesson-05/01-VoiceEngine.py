@@ -123,7 +123,7 @@ class VoiceChatEngine:
             print(f"{Colors.USER}User (Spoken): {user_input}{Colors.RESET}")
 
             if "goodbye" in user_input.lower() or "exit" in user_input.lower():
-                print(f"{Colors.JARVIS}Jarvis: Powering down. Goodbye, sir.{Colors.RESET}")
+                print(f"{Colors.JARVIS}Jarvis: Powering down. Goodbye.{Colors.RESET}")
                 break
 
             # 2. Process through LLM

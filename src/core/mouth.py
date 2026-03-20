@@ -7,15 +7,18 @@ import threading
 import keyboard
 import pyaudio
 from .piper_wrapper import PiperTTSWrapper
-from core.colors import Colors
+from .colors import Colors
 
 class AsyncMouth:
+    """Handles threaded TTS generation and hardware barge-in (interrupts)."""
+    
     def __init__(self):
-        print("[System] Initializing Async Mouth (Piper TTS)...")
+        print(f"{Colors.SYSTEM}[System] Initializing Async Mouth (Piper TTS)...{Colors.RESET}")
         
-        # Dynamically locate the centralized ../data/ folder
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(os.path.dirname(current_dir), "..", "data")
+        # 1. Dynamically anchor to this file's location (.../src/core/mouth.py)
+        core_dir = os.path.dirname(os.path.abspath(__file__))
+        # 2. Go up two levels to the root, then into the data folder
+        data_dir = os.path.abspath(os.path.join(core_dir, "..", "..", "data"))
         
         model_path = os.path.join(data_dir, "piper-lessac.onnx")
         piper_dir = os.path.join(data_dir, "piper")
@@ -25,7 +28,7 @@ class AsyncMouth:
         self.tts_queue = queue.Queue()
         self.is_interrupted = False
         
-        # Bind the hardware kill switch
+        # Bind the hardware kill switch to the Spacebar
         keyboard.add_hotkey('space', self.trigger_interrupt)
         
         # Start the background worker thread
@@ -36,7 +39,7 @@ class AsyncMouth:
         """Flips the kill switch. Thread-safe."""
         if not self.is_interrupted:
             self.is_interrupted = True
-            print("\n{Colors.WARNING}[Barge-in Detected: Halting Audio...]{Colors.RESET}")
+            print(f"\n{Colors.WARNING}[Barge-in Detected: Halting Audio...]{Colors.RESET}")
 
     def reset_state(self):
         """Clears the interrupt flag and flushes the queue for a new conversational turn."""
@@ -57,10 +60,10 @@ class AsyncMouth:
         while True:
             text = self.tts_queue.get()
             
-            if text is None: # Poison pill to kill thread
+            if text is None: # Poison pill to kill thread safely on shutdown
                 break
                 
-            # If interrupted before starting this sentence, skip it
+            # If interrupted before starting this sentence, skip it entirely
             if self.is_interrupted:
                 self.tts_queue.task_done()
                 continue
@@ -72,7 +75,10 @@ class AsyncMouth:
                 self.tts_queue.task_done()
                 continue
 
-            temp_file = f"temp_piper_{uuid.uuid4().hex[:6]}.wav"
+            # --- THE ARCHITECT'S PATH ANCHORING ---
+            core_dir = os.path.dirname(os.path.abspath(__file__))
+            temp_file = os.path.join(core_dir, f"temp_piper_{uuid.uuid4().hex[:6]}.wav")
+            
             try:
                 success, result = self.piper_tts.synthesize(clean_text, temp_file)
                 
@@ -96,7 +102,7 @@ class AsyncMouth:
                     p.terminate()
                     wf.close()
             except Exception as e:
-                print(f"[Mouth Error: {e}]")
+                print(f"{Colors.ERROR}[Mouth Error: {e}]{Colors.RESET}")
             finally:
                 if os.path.exists(temp_file): 
                     os.remove(temp_file)

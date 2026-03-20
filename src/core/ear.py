@@ -14,16 +14,18 @@ class JarvisEar:
     def listen(self) -> str:
         """Captures audio from the microphone and transcribes it instantly."""
         with sr.Microphone() as source:
-            print("\n{Colors.SYSTEM}[Listening... Speak now (Press 'Space' during playback to interrupt)]{Colors.RESET}")
-            # Calibrate for ambient noise and set the slow-speaker pause threshold
+            print(f"\n{Colors.SYSTEM}[Listening... Speak now (Press 'Space' during playback to interrupt)]{Colors.RESET}")
             self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
             self.recognizer.pause_threshold = 2.0 
             
             try:
                 audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=30)
-                print("{Colors.SYSTEM}[Processing Audio...]{Colors.RESET}")
+                print(f"{Colors.SYSTEM}[Processing Audio...]{Colors.RESET}")
                 
-                temp_wav = "temp_capture.wav"
+                # --- THE ARCHITECT'S PATH ANCHORING ---
+                core_dir = os.path.dirname(os.path.abspath(__file__))
+                temp_wav = os.path.join(core_dir, "temp_capture.wav")
+                
                 with open(temp_wav, "wb") as f:
                     f.write(audio.get_wav_data())
                 

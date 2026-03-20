@@ -7,36 +7,47 @@ from .brain import JarvisBrain
 from core.colors import Colors
 
 class JarvisMemory:
+    import os
+import uuid
+import warnings
+from qdrant_client import QdrantClient
+from qdrant_client.models import VectorParams, Distance, PointStruct
+from .brain import JarvisBrain
+from .colors import Colors
+
+warnings.filterwarnings("ignore", category=UserWarning)
+
+class JarvisMemory:
+    """The Heuristic Recommendation Engine (HRE) and Persistent Vector Database."""
+    
     def __init__(self, model_id="local-model"):
-        print("[System] Initializing HRE Memory Manager...")
+        print(f"{Colors.SYSTEM}[System] Initializing HRE Memory Manager...{Colors.RESET}")
         self.brain = JarvisBrain(model_id=model_id)
-        
-        # We use the Brain's LM Studio client to keep embeddings 100% local!
         self.embed_model = "text-embedding-nomic-embed-text-v1.5@q8_0"
         
         self.raw_history = []
         self.running_summary = ""
         self.turn_count = 0
         
-        # Dynamically locate the centralized ../data/ folder
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(os.path.dirname(current_dir), "..", "data")
+        # --- THE ARCHITECT'S PATH ANCHORING ---
+        core_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.abspath(os.path.join(core_dir, "..", "..", "data"))
         qdrant_path = os.path.join(data_dir, "qdrant_storage")
         
-        # Ensure the data directory exists
         os.makedirs(data_dir, exist_ok=True)
         
+        # Persistent Storage anchored to the centralized data folder
         self.qdrant = QdrantClient(path=qdrant_path)
         self.collection = "jarvis_memory"
         
         if not self.qdrant.collection_exists(self.collection):
-            print(f"[System] Creating persistent memory database at {qdrant_path}...")
+            print(f"{Colors.SYSTEM}[System] Creating new persistent memory database at {qdrant_path}...{Colors.RESET}")
             self.qdrant.create_collection(
                 collection_name=self.collection,
                 vectors_config=VectorParams(size=768, distance=Distance.COSINE)
             )
         else:
-            print("[System] Persistent memory loaded successfully.")
+            print(f"{Colors.SYSTEM}[System] Persistent memory loaded successfully.{Colors.RESET}")
 
     def add_user_message(self, content: str):
         self.turn_count += 1
@@ -95,14 +106,14 @@ class JarvisMemory:
         
         # Rule 1: The Fast Path
         if self.turn_count <= 3:
-            print("{Colors.ROUTER}[HRE ROUTER]: Sliding Window (Fast Path){Colors.RESET}")
+            print(f"{Colors.ROUTER}[HRE ROUTER]: Sliding Window (Fast Path){Colors.RESET}")
             return [{"role": "system", "content": system_prompt}] + self.raw_history
 
         intent = self._route_intent(user_query)
 
         # Rule 2: The Deep Search Path
         if intent == "RECALL":
-            print("{Colors.ROUTER}[HRE ROUTER]: Vector RAG (Deconstructed){Colors.RESET}")
+            print(f"{Colors.ROUTER}[HRE ROUTER]: Vector RAG (Deconstructed){Colors.RESET}")
             sub_queries = self._deconstruct_query(user_query)
             context_pieces = []
             
@@ -121,7 +132,7 @@ class JarvisMemory:
             return [{"role": "system", "content": system_prompt}] + self.raw_history[-1:]
 
         # Rule 3: The Narrative Path
-        print("{Colors.ROUTER}[HRE ROUTER]: Rolling Summary + Window{Colors.RESET}")
+        print(f"{Colors.ROUTER}[HRE ROUTER]: Rolling Summary + Window{Colors.RESET}")
         self._update_summary()
         if self.running_summary:
             system_prompt += f"\n\n[CONVERSATION SUMMARY]\n{self.running_summary}"

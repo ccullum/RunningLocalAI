@@ -238,7 +238,7 @@ def main():
         print(f"\n{Colors.USER}User: {user_input}{Colors.RESET}")
         
         if "shutdown" in user_input.lower() or "shut down" in user_input.lower() or "exit" in user_input.lower():
-            goodbye = "Shutting down core systems. Goodbye, sir."
+            goodbye = "Shutting down core systems. Goodbye."
             print(f"{Colors.JARVIS}JARVIS: {goodbye}{Colors.RESET}")
             speak(goodbye)
             # Gracefully close the vector database so it doesn't crash on exit
