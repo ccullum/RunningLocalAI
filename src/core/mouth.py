@@ -20,7 +20,7 @@ class AsyncMouth:
         # 2. Go up two levels to the root, then into the data folder
         data_dir = os.path.abspath(os.path.join(core_dir, "..", "..", "data"))
         
-        model_path = os.path.join(data_dir, "piper-lessac.onnx")
+        model_path = os.path.join(data_dir, "voices", "piper-lessac.onnx")
         piper_dir = os.path.join(data_dir, "piper")
         
         self.piper_tts = PiperTTSWrapper(model_path=model_path, piper_dir=piper_dir)
