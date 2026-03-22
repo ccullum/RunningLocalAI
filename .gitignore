@@ -42,6 +42,9 @@ temp_capture.wav
 benchmark_audio.wav
 temp_pyttsx3.wav
 
-# 5. Pre-compiled Binaries & Archives
+# Pre-compiled Binaries & Archives
 piper/
 *.zip
+
+# streamlit directory and it's files
+.streamlit
