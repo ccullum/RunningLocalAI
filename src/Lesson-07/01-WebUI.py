@@ -99,7 +99,7 @@ if user_input := st.chat_input("Message JARVIS..."):
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     
     # 5. --- NEW: THE VOICE TRIGGER ---
-    if voice_enabled:
-        print("[WebUI] Sending response to Piper TTS...")
-        # NOTE: If your function inside core/mouth.py is named something else (like 'say' or 'generate_audio'), update 'mouth.speak' below!
-        threading.Thread(target=mouth.enqueue_sentence, args=(full_response,), daemon=True).start()
+#    if voice_enabled:
+#        print("[WebUI] Sending response to Piper TTS...")
+#        # NOTE: If your function inside core/mouth.py is named something else (like 'say' or 'generate_audio'), update 'mouth.speak' below!
+#        threading.Thread(target=mouth.enqueue_sentence, args=(full_response,), daemon=True).start()
