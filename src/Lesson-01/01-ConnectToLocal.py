@@ -1,6 +1,5 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser 
 from dotenv import load_dotenv 
  
 # Load environment variables 
