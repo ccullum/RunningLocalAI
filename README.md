@@ -9,6 +9,11 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson-02: Streaming Responses & Analysis](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-02)
 * [Lesson-03: Local RAG Implementation & Performance Analysis](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-03)
 * [Lesson-04: Local Memory & Conversation Buffers](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-04)
+* [Lesson-05: Adding hearing to the AI and testing/comparing STT engines](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-05)
+* [Lesson-06: Adding speech and refactored into a completely decoupled, asynchronous, and scalable Python package](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-06)
+* [Lesson-07: The Web UI & Cognitive Memory Engine] (https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-07)
+
+
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
