@@ -11,8 +11,8 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson-04: Local Memory & Conversation Buffers](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-04)
 * [Lesson-05: Adding hearing to the AI and testing/comparing STT engines](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-05)
 * [Lesson-06: Adding speech and refactored into a completely decoupled, asynchronous, and scalable Python package](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-06)
-* [Lesson-07: The Web UI & Cognitive Memory Engine] (https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-07)
-
+* [Lesson-07: The Web UI & Cognitive Memory Engine](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-07)
+* [Lesson-08: Multimodal Document Parsing & OCR Pipeline](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-08)
 
 
 ## 🚀 Features

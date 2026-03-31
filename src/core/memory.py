@@ -77,6 +77,59 @@ class JarvisMemory:
     def add_assistant_message(self, assistant_response: str):
         self.raw_history.append({"role": "assistant", "content": assistant_response})
         self.turn_count += 1
+    
+    def ingest_document(self, filename: str, content: str) -> bool:
+        """Slices a document into chunks, embeds them, and saves them to Qdrant."""
+        print(f"{Colors.SYSTEM}[Memory Manager]: Ingesting document '{filename}'...{Colors.RESET}")
+        
+        # 1. The Chunking Math (Slices text into ~1000 character blocks)
+        chunk_size = 1000
+        # Overlap chunks by 200 characters so we don't cut a critical sentence in half!
+        overlap = 200 
+        
+        chunks = []
+        start = 0
+        while start < len(content):
+            end = start + chunk_size
+            chunks.append(content[start:end])
+            start += (chunk_size - overlap)
+            
+        points = []
+        current_time = int(time.time())
+        
+        # 2. Embed and Package the Chunks
+        for i, chunk in enumerate(chunks):
+            # Clean up the text a bit (remove weird PDF line breaks)
+            clean_chunk = chunk.replace('\n', ' ').strip()
+            
+            # Skip tiny useless fragments (like a page number sitting by itself)
+            if len(clean_chunk) < 50: 
+                continue
+                
+            try:
+                # Ask Nomic for the math coordinates
+                vector = self.brain.client.embeddings.create(input=clean_chunk, model=self.embed_model).data[0].embedding
+                
+                # THE FWA PAYLOAD (Now with Document Metadata!)
+                payload = {
+                    "text": clean_chunk,
+                    "source_file": filename,  # <-- Crucial: Tags the memory to the file!
+                    "chunk_id": i,
+                    "retrieval_count": 1,
+                    "created_at": current_time,
+                    "last_accessed": current_time
+                }
+                
+                points.append(PointStruct(id=uuid.uuid4().hex, vector=vector, payload=payload))
+            except Exception as e:
+                print(f"{Colors.ERROR}[Ingestion Error on chunk {i}: {e}]{Colors.RESET}")
+        
+        # 3. Bulk Upsert to the Qdrant Vault
+        if points:
+            self.qdrant.upsert(collection_name=self.collection, points=points)
+            print(f"{Colors.MEMORY}[Memory Manager]: Successfully saved {len(points)} chunks from '{filename}'.{Colors.RESET}")
+            return True
+        return False
 
     def _reinforce_memories_background(self, point_ids: list):
         """Runs in a background thread to strengthen the memory paths without lagging JARVIS."""
@@ -141,17 +194,30 @@ class JarvisMemory:
             self.running_summary = self.brain.process_background_task(prompt, max_tokens=100)
 
     def get_context_payload(self, user_query: str):
-        # The Pronoun Primer
+        # The Pronoun Primer & Document Reader Upgrade
         system_prompt = (
             "You are JARVIS, a highly intelligent and concise AI. "
             "When the user says 'I', 'me', or 'my', they are referring to themselves. "
-            "Use the provided context to answer their questions about themselves. "
-            "If the answer is not in the context below, DO NOT guess. Say you don't know."
+            "The user may also extract document text and provide it to you in the context block below. "
+            "Use the provided context to answer questions about the user or the provided documents. "
+            "If the answer is not in the context below, DO NOT guess, do not make up an answer, and do not apologize about your capabilities. Say you don't know."
         )
         
-        intent = self._route_intent(user_query)
+        # --- THE HEURISTIC OVERRIDE ---
+        # Intercept document commands before the LLM gets confused
+        user_text_lower = user_query.lower()
+        force_search_keywords = ["remember", "recall", "search", "document", "pdf", "file", "ingested"]
+        
+        if any(keyword in user_text_lower for keyword in force_search_keywords):
+            print(f"{Colors.SYSTEM}[Heuristic Override]: Forcing RECALL intent...{Colors.RESET}")
+            intent = "RECALL"
+        else:
+            # Let the LLM decide only if no keywords were found
+            intent = self._route_intent(user_query)
 
         if intent == "RECALL":
+            print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
+            # ... (the rest of your vector search math stays exactly the same!)        if intent == "RECALL":
             print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
             
             search_queries = [user_query]

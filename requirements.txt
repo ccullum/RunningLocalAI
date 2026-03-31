@@ -38,3 +38,11 @@ numpy>=2.0.0       # Upgraded to support LangChain 0.3 and Kokoro V1.0
 
 ##Added for Lesson 07
 streamlit
+
+##Added for Lesson 08
+#PDF Parsing
+pymupdf
+#OCR
+pytesseract
+#Image processing
+pillow
