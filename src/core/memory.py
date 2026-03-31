@@ -1,4 +1,3 @@
-import os
 import uuid
 import time
 import threading
@@ -6,10 +5,11 @@ import warnings
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
-
+from utils.metrics import telemetry
 from .brain import LocalStreamBrain
 from .colors import Colors
 from .config import Config
+from .semantic_router import SemanticRouter
 
 # Suppress annoying Pydantic/Qdrant warnings in the terminal
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -35,6 +35,7 @@ class AsyncMemory:
         self.raw_history = []
         self.turn_count = 0
         self.running_summary = ""
+        self.semantic_router = SemanticRouter(self.brain.client, self.embed_model)
 
     def add_user_message(self, user_input: str):
         """Adds to short-term history and selectively saves facts to long-term memory."""
@@ -127,8 +128,8 @@ class AsyncMemory:
         except Exception as e:
             print(f"{Colors.ERROR}[Background Reinforcement Error: {e}]{Colors.RESET}")
 
-    def _route_intent(self, user_query: str) -> str:
-        # 1. The Architect's Override (Fast Keyword Heuristics)
+    @telemetry.measure("Router [LLM 8B]")
+    def _route_intent_llm(self, user_query: str) -> str:        # 1. The Architect's Override (Fast Keyword Heuristics)
         query_lower = user_query.lower()
         recall_triggers = ["what is my", "what's my", "do you remember", "did i say", "did i tell", "what was my"]
         
@@ -146,6 +147,18 @@ class AsyncMemory:
         if "SUMMARY" in raw_intent: return "SUMMARY"
         return "CHAT"
 
+    @telemetry.measure("Router [Semantic Math]")
+    def _route_intent_semantic(self, user_query: str) -> str:
+        # We don't need keyword heuristics anymore, the math handles it all!
+        return self.semantic_router.route(user_query)
+    
+    def _route_intent(self, user_query: str) -> str:
+        """Dispatcher: Checks the config flag and fires the appropriate routing engine."""
+        if Config.USE_SEMANTIC_ROUTER:
+            return self._route_intent_semantic(user_query)
+        else:
+            return self._route_intent_llm(user_query)
+    
     def _deconstruct_query(self, user_query: str) -> list:
         # Pull the template from Config and inject the user_query
         prompt = Config.DECONSTRUCT_QUERY_TEMPLATE.format(user_query=user_query)
@@ -167,23 +180,11 @@ class AsyncMemory:
         # Pull the base persona and rules from the Control Room
         system_prompt = Config.SYSTEM_PROMPT
         
-        # --- THE HEURISTIC OVERRIDE ---
-        # Intercept document commands before the LLM gets confused
-        user_text_lower = user_query.lower()
-        force_search_keywords = ["remember", "recall", "search", "document", "pdf", "file", "ingested"]
-        
-        if any(keyword in user_text_lower for keyword in force_search_keywords):
-            print(f"{Colors.SYSTEM}[Heuristic Override]: Forcing RECALL intent...{Colors.RESET}")
-            intent = "RECALL"
-        else:
-            # Let the LLM decide only if no keywords were found
-            intent = self._route_intent(user_query)
+        # Let the Semantic Router do its job!
+        intent = self._route_intent(user_query)
 
         if intent == "RECALL":
             print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
-            # ... (the rest of your vector search math stays exactly the same!)        if intent == "RECALL":
-            print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
-            
             search_queries = [user_query]
             try:
                 deconstructed = self._deconstruct_query(user_query)

@@ -13,7 +13,7 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson-06: Adding speech and refactored into a completely decoupled, asynchronous, and scalable Python package](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-06)
 * [Lesson-07: The Web UI & Cognitive Memory Engine](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-07)
 * [Lesson-08: Multimodal Document Parsing & OCR Pipeline](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-08)
-
+* [Lesson 09: Algorithmic Semantic Routing & Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-08)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
@@ -61,11 +61,21 @@ To run this project locally, you will need:
    *(Note: Each feature is built out into different lessons. The lessons will build upon each other and the current highest Lesson is the AI at this point).*
 
 ## 🔮 Future Roadmap
-- [ ] Add RAG components.
-- [ ] Add conversation history and memory buffers.
-- [ ] Implement Text-to-Speech (TTS) for a true "Jarvis" voice experience.
-- [ ] Integrate local system commands (e.g., opening apps, checking weather).
-- [ ] Add Automation.
+
+**Completed Milestones**
+- [x] Add RAG components (Vector Databases & Embeddings).
+- [x] Add conversation history, memory buffers, and cognitive filtering.
+- [x] Integrate Speech-to-Text (STT) for fast local voice transcription.
+- [x] Implement Text-to-Speech (TTS) for a true "Jarvis" voice experience.
+- [x] Build Multimodal Document Parsing and OCR pipelines.
+- [x] Implement deterministic Algorithmic Semantic Routing and Telemetry.
+
+**Upcoming Features**
+- [ ] Integrate local system commands (e.g., opening apps, checking system metrics, managing files).
+- [ ] Add Agentic Automation / Tool Use (allowing the LLM to trigger local Python scripts dynamically).
+- [ ] Introduce Computer Vision / Screen analysis for contextual desktop awareness.
+- [ ] Connect to local Smart Home ecosystems (e.g., Home Assistant API) for offline environmental control.
+- [ ] Implement proactive background tasks and asynchronous agent behaviors.
 
 ## 📬 Contact
 Created by **Christopher Cullum** 

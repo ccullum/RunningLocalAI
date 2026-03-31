@@ -17,7 +17,7 @@ class Config:
     
     # Brain Tuning
     LLM_CHAT_TEMPERATURE = 0.3
-    LLM_CHAT_MAX_TOKENS = 300
+    LLM_CHAT_MAX_TOKENS = 1024
     LLM_TASK_TEMPERATURE = 0.0
     LLM_TASK_MAX_TOKENS = 50
     
@@ -34,7 +34,7 @@ class Config:
     EAR_COMPUTE_TYPE = "int8"   
     PIPER_DIR = os.path.join(DATA_DIR, "piper")
     PIPER_MODEL_PATH = os.path.join(DATA_DIR, "voices", "piper-lessac.onnx")
-    HOTKEY_KILL = 'space'
+    HOTKEY_KILL = 'esc'
     AUDIO_TEMP_DIR = TEMP_DIR
 
     # --- VAD (Voice Activity Detection) TUNING ---
@@ -76,6 +76,35 @@ class Config:
     CONTEXT_INJECTION_TEMPLATE = "\n\n[FACTS AND CONTEXT ABOUT THE USER OR DOCUMENTS]\n{context}"
     SUMMARY_INJECTION_TEMPLATE = "\n\n[CONVERSATION SUMMARY]\n{summary}"
 
+    # --- SEMANTIC ROUTER ANCHORS ---
+    # These dictate the "center of gravity" for each intent
+    ROUTER_RECALL_ANCHORS = [
+        "What did the document say about",
+        "Search my files for",
+        "Do you remember when I told you",
+        "Look up the PDF",
+        "What was that fact I asked you to remember",
+        "Can you find the reference to",
+        "According to the text I uploaded"
+    ]
+    
+    ROUTER_SUMMARY_ANCHORS = [
+        "Can you summarize our conversation",
+        "Give me a recap of what we just talked about",
+        "What is the summary of this chat",
+        "Bring me up to speed on our discussion"
+    ]
+    
+    # We define a strict similarity threshold. 
+    # If the user's prompt doesn't score at least this high against ANY anchor, it safely defaults to CHAT.
+    ROUTER_CONFIDENCE_THRESHOLD = 0.65
+    
+    # --- ROUTING ENGINE ---
+    # True = Lightning-fast math router. False = Old 8B LLM router.
+    USE_SEMANTIC_ROUTER = True
+
+    # --- METRICS & TELEMETRY ---
+    ENABLE_METRICS = True
 
 # This runs immediately when config.py is imported!
 os.makedirs(TEMP_DIR, exist_ok=True)

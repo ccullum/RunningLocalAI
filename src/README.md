@@ -13,3 +13,4 @@ The code is structured progressively into "Lessons" to demonstrate the iterative
 * **`Lesson-06/`**: Adding speech and refactored into a completely decoupled, asynchronous, and scalable Python package
 * **`Lesson-07/`**: The Web UI & Cognitive Memory Engine
 * **`Lesson 08/`**: Multimodal Document Parsing & OCR Pipeline
+* **`Lesson 09/`**: Algorithmic Semantic Routing & Telemetry
