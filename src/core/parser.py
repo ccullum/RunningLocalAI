@@ -1,22 +1,16 @@
-import os
 import io
 import fitz  # PyMuPDF
 import pytesseract
 from PIL import Image
-from dotenv import load_dotenv
 from .colors import Colors
+from .config import Config
 
-# Load environment variables from the .env file
-load_dotenv()
+pytesseract.pytesseract.tesseract_cmd = Config.TESSERACT_CMD_PATH
 
-# Safely fetch the Tesseract path (Returns None if not found)
-tesseract_path = os.getenv("TESSERACT_CMD_PATH")
-if tesseract_path:
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
-
-class DocumentIngestor:
+class DocumentParser:
     def __init__(self):
-        print(f"{Colors.SYSTEM}[Ingestor] Initializing Multimodal Document Parser...{Colors.RESET}")
+        print(f"{Colors.SYSTEM}[Parser] Initializing Multimodal Document Parser...{Colors.RESET}")
+
     def process_file(self, file_bytes: bytes, filename: str) -> str:
         """Routes the file to the correct parser based on extension."""
         ext = filename.lower().split('.')[-1]
@@ -32,7 +26,7 @@ class DocumentIngestor:
 
     def _parse_image(self, file_bytes: bytes) -> str:
         """Runs standard OCR on a standalone image file."""
-        print(f"{Colors.SYSTEM}[Ingestor] Running OCR on Image...{Colors.RESET}")
+        print(f"{Colors.SYSTEM}[Parser] Running OCR on Image...{Colors.RESET}")
         image = Image.open(io.BytesIO(file_bytes))
         text = pytesseract.image_to_string(image)
         return text.strip()
@@ -42,7 +36,7 @@ class DocumentIngestor:
         Layout-Aware Parsing: Reads text from a PDF page, then hunts for 
         embedded images on that same page, OCRs them, and appends the data.
         """
-        print(f"{Colors.SYSTEM}[Ingestor] Parsing PDF and scanning for embedded images...{Colors.RESET}")
+        print(f"{Colors.SYSTEM}[Parser] Parsing PDF and scanning for embedded images...{Colors.RESET}")
         full_text = []
         
         # Open the PDF from bytes
@@ -60,7 +54,7 @@ class DocumentIngestor:
             # 2. Hunt for embedded images (Tables, Charts, Scans)
             image_list = page.get_images(full=True)
             if image_list:
-                print(f"{Colors.SYSTEM}[Ingestor] Found {len(image_list)} image(s) on page {page_num + 1}. Running OCR...{Colors.RESET}")
+                print(f"{Colors.SYSTEM}[Parser] Found {len(image_list)} image(s) on page {page_num + 1}. Running OCR...{Colors.RESET}")
                 for img_index, img in enumerate(image_list):
                     xref = img[0]
                     base_image = pdf_document.extract_image(xref)
@@ -89,3 +83,21 @@ class DocumentIngestor:
             
         pdf_document.close()
         return "\n".join(full_text)
+    
+    def extract_and_chunk(self, file_bytes: bytes, filename: str) -> list:
+        """The master method: Extracts text and slices it into overlapping chunks."""
+        # 1. Extract the raw text
+        raw_content = self.process_file(file_bytes, filename)
+        
+        # 2. The Chunking Math
+        chunk_size = Config.CHUNK_SIZE
+        overlap = Config.CHUNK_OVERLAP 
+        
+        chunks = []
+        start = 0
+        while start < len(raw_content):
+            end = start + chunk_size
+            chunks.append(raw_content[start:end])
+            start += (chunk_size - overlap)
+            
+        return chunks

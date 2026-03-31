@@ -1,30 +1,40 @@
 import os
 import speech_recognition as sr
 from faster_whisper import WhisperModel
-from core.colors import Colors
+from .colors import Colors
+from .config import Config
 
-class JarvisEar:
+class VADTranscriptEar: # (Or JarvisEar, depending on your rename!)
     """Handles Voice Activity Detection (VAD) and local transcription."""
     
-    def __init__(self, model_size="tiny.en", device="cpu", compute_type="int8"):
-        print("[System] Loading Faster-Whisper Ear into VRAM/CPU...")
-        self.stt_model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    def __init__(self):
+        print(f"{Colors.SYSTEM}[System] Loading Faster-Whisper Ear into VRAM/CPU...{Colors.RESET}")
+        self.stt_model = WhisperModel(
+            Config.STT_MODEL, 
+            device=Config.EAR_DEVICE, 
+            compute_type=Config.EAR_COMPUTE_TYPE
+        )
         self.recognizer = sr.Recognizer()
 
     def listen(self) -> str:
         """Captures audio from the microphone and transcribes it instantly."""
         with sr.Microphone() as source:
             print(f"\n{Colors.SYSTEM}[Listening... Speak now (Press 'Space' during playback to interrupt)]{Colors.RESET}")
-            self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-            self.recognizer.pause_threshold = 2.0 
+            
+            # Use Config for all VAD tuning!
+            self.recognizer.adjust_for_ambient_noise(source, duration=Config.EAR_AMBIENT_DURATION)
+            self.recognizer.pause_threshold = Config.EAR_PAUSE_THRESHOLD 
             
             try:
-                audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=30)
+                audio = self.recognizer.listen(
+                    source, 
+                    timeout=Config.EAR_TIMEOUT, 
+                    phrase_time_limit=Config.EAR_PHRASE_LIMIT
+                )
                 print(f"{Colors.SYSTEM}[Processing Audio...]{Colors.RESET}")
                 
-                # --- THE ARCHITECT'S PATH ANCHORING ---
-                core_dir = os.path.dirname(os.path.abspath(__file__))
-                temp_wav = os.path.join(core_dir, "temp_capture.wav")
+                # Drop the microphone capture directly into the data/temp folder
+                temp_wav = os.path.join(Config.AUDIO_TEMP_DIR, "temp_capture.wav")
                 
                 with open(temp_wav, "wb") as f:
                     f.write(audio.get_wav_data())

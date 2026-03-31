@@ -8,6 +8,7 @@ import keyboard
 import pyaudio
 from .piper_wrapper import PiperTTSWrapper
 from .colors import Colors
+from .config import Config
 
 class AsyncMouth:
     """Handles threaded TTS generation and hardware barge-in (interrupts)."""
@@ -15,21 +16,17 @@ class AsyncMouth:
     def __init__(self):
         print(f"{Colors.SYSTEM}[System] Initializing Async Mouth (Piper TTS)...{Colors.RESET}")
         
-        # 1. Dynamically anchor to this file's location (.../src/core/mouth.py)
-        core_dir = os.path.dirname(os.path.abspath(__file__))
-        # 2. Go up two levels to the root, then into the data folder
-        data_dir = os.path.abspath(os.path.join(core_dir, "..", "..", "data"))
-        
-        model_path = os.path.join(data_dir, "voices", "piper-lessac.onnx")
-        piper_dir = os.path.join(data_dir, "piper")
-        
-        self.piper_tts = PiperTTSWrapper(model_path=model_path, piper_dir=piper_dir)
-        
+        # Pull paths directly from the Control Room
+        self.piper_tts = PiperTTSWrapper(
+            model_path=Config.PIPER_MODEL_PATH, 
+            piper_dir=Config.PIPER_DIR
+        )
+
         self.tts_queue = queue.Queue()
         self.is_interrupted = False
         
         # Bind the hardware kill switch to the Spacebar
-        keyboard.add_hotkey('space', self.trigger_interrupt)
+        keyboard.add_hotkey(Config.HOTKEY_KILL, self.trigger_interrupt)
         
         # Start the background worker thread
         self.worker_thread = threading.Thread(target=self._tts_worker_loop, daemon=True)
@@ -75,9 +72,8 @@ class AsyncMouth:
                 self.tts_queue.task_done()
                 continue
 
-            # --- THE ARCHITECT'S PATH ANCHORING ---
-            core_dir = os.path.dirname(os.path.abspath(__file__))
-            temp_file = os.path.join(core_dir, f"temp_piper_{uuid.uuid4().hex[:6]}.wav")
+            # Drop the audio file directly into the data/temp folder
+            temp_file = os.path.join(Config.AUDIO_TEMP_DIR, f"temp_piper_{uuid.uuid4().hex[:6]}.wav")
             
             try:
                 success, result = self.piper_tts.synthesize(clean_text, temp_file)

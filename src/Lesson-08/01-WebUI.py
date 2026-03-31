@@ -14,10 +14,10 @@ if src_dir not in sys.path:
 # ==========================================
 # MODULAR IMPORTS
 # ==========================================
-from core.brain import JarvisBrain
-from core.memory import JarvisMemory
+from core.brain import LocalStreamBrain
+from core.memory import AsyncMemory
 from core.mouth import AsyncMouth
-from core.ingestor import DocumentIngestor
+from core.parser import DocumentParser
 
 # ==========================================
 # STREAMLIT PAGE CONFIGURATION
@@ -30,22 +30,22 @@ st.set_page_config(page_title="JARVIS Core V2.0", page_icon="🧠", layout="cent
 @st.cache_resource(show_spinner="Booting JARVIS Core Engine...")
 def load_engine():
     """Loads the Brain and Memory exactly once and keeps them in RAM."""
-    brain = JarvisBrain(model_id="local-model")
-    memory = JarvisMemory(model_id="local-model")
+    brain = LocalStreamBrain()
+    memory = AsyncMemory()
     return brain, memory
 
 brain, memory = load_engine()
 
 @st.cache_resource
-def get_jarvis_mouth():
+def get_mouth():
     return AsyncMouth()
 
 @st.cache_resource
-def get_jarvis_ingestor():
-    return DocumentIngestor()
+def get_parser():
+    return DocumentParser()
 
-mouth = get_jarvis_mouth()
-ingestor = get_jarvis_ingestor()
+mouth = get_mouth()
+parser = get_parser()
 
 # ==========================================
 # SIDEBAR SETTINGS & UPLOADER
@@ -72,22 +72,22 @@ with st.sidebar:
                     file_bytes = uploaded_file.read()
                     filename = uploaded_file.name
                     
-                    # Pass to Ingestor for raw text / OCR
-                    extracted_text = ingestor.process_file(file_bytes, filename)
+                    # 1. Pass to Parser to extract text AND slice it into chunks
+                    chunks = parser.extract_and_chunk(file_bytes, filename)
                     
-                    # Pass raw text to Memory for chunking and Qdrant storage
-                    if extracted_text and extracted_text.strip():
-                        success = memory.ingest_document(filename, extracted_text)
+                    # 2. Pass the list of chunks to Memory for vector embedding and storage
+                    if chunks:
+                        success = memory.save_document_chunks(filename, chunks)
                         
                         if success:
-                            st.success(f"Successfully memorized {filename}!")
+                            st.success(f"Successfully memorized {len(chunks)} chunks from {filename}!")
                             sys_note = f"[System Note]: The user just uploaded and ingested a file named '{filename}'."
                             st.session_state.messages.append({"role": "system", "content": sys_note})
                             memory.raw_history.append({"role": "system", "content": sys_note})
                         else:
-                            st.error("Document processed, but no usable text chunks were generated.")
+                            st.error("Document processed, but failed to save vectors to the database.")
                     else:
-                        st.warning("No text could be found or OCR'd from this file.")
+                        st.warning("No usable text could be extracted or chunked from this file.")
                         
                 except Exception as e:
                     st.error(f"Ingestion Pipeline Error: {e}")

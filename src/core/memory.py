@@ -7,27 +7,23 @@ import warnings
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 
-from .brain import JarvisBrain
+from .brain import LocalStreamBrain
 from .colors import Colors
+from .config import Config
 
 # Suppress annoying Pydantic/Qdrant warnings in the terminal
 warnings.filterwarnings("ignore", category=UserWarning)
 
-class JarvisMemory:
-    def __init__(self, model_id: str = "local-model"):
+class AsyncMemory:
+    def __init__(self):
         print(f"{Colors.SYSTEM}[System] Initializing HRE Memory Manager...{Colors.RESET}")
-        self.brain = JarvisBrain(model_id=model_id)
-        self.embed_model = "text-embedding-nomic-embed-text-v1.5@q8_0"
+        self.brain = LocalStreamBrain() # No need to pass model_id anymore
         
-        # Setup Paths dynamically
-        core_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.abspath(os.path.join(core_dir, "..", "..", "data"))
-        qdrant_path = os.path.join(data_dir, "qdrant_storage")
+        # Use config variables
+        self.embed_model = Config.EMBED_MODEL
+        self.collection = Config.COLLECTION_NAME
+        self.qdrant = QdrantClient(path=Config.QDRANT_STORAGE_PATH)
         
-        self.collection = "jarvis_memory"
-        self.qdrant = QdrantClient(path=qdrant_path)
-        
-        # Ensure collection exists (using 768 dimensions for Nomic text embeddings)
         if not self.qdrant.collection_exists(self.collection):
             self.qdrant.create_collection(
                 collection_name=self.collection,
@@ -78,31 +74,15 @@ class JarvisMemory:
         self.raw_history.append({"role": "assistant", "content": assistant_response})
         self.turn_count += 1
     
-    def ingest_document(self, filename: str, content: str) -> bool:
-        """Slices a document into chunks, embeds them, and saves them to Qdrant."""
-        print(f"{Colors.SYSTEM}[Memory Manager]: Ingesting document '{filename}'...{Colors.RESET}")
+    def save_document_chunks(self, filename: str, chunks: list) -> bool:
+        """Takes pre-sliced chunks, embeds them, and saves them to Qdrant."""
+        print(f"{Colors.SYSTEM}[Memory Manager]: Embedding {len(chunks)} chunks from '{filename}'...{Colors.RESET}")
         
-        # 1. The Chunking Math (Slices text into ~1000 character blocks)
-        chunk_size = 1000
-        # Overlap chunks by 200 characters so we don't cut a critical sentence in half!
-        overlap = 200 
-        
-        chunks = []
-        start = 0
-        while start < len(content):
-            end = start + chunk_size
-            chunks.append(content[start:end])
-            start += (chunk_size - overlap)
-            
         points = []
         current_time = int(time.time())
         
-        # 2. Embed and Package the Chunks
         for i, chunk in enumerate(chunks):
-            # Clean up the text a bit (remove weird PDF line breaks)
             clean_chunk = chunk.replace('\n', ' ').strip()
-            
-            # Skip tiny useless fragments (like a page number sitting by itself)
             if len(clean_chunk) < 50: 
                 continue
                 
@@ -110,10 +90,9 @@ class JarvisMemory:
                 # Ask Nomic for the math coordinates
                 vector = self.brain.client.embeddings.create(input=clean_chunk, model=self.embed_model).data[0].embedding
                 
-                # THE FWA PAYLOAD (Now with Document Metadata!)
                 payload = {
                     "text": clean_chunk,
-                    "source_file": filename,  # <-- Crucial: Tags the memory to the file!
+                    "source_file": filename,
                     "chunk_id": i,
                     "retrieval_count": 1,
                     "created_at": current_time,
@@ -122,12 +101,11 @@ class JarvisMemory:
                 
                 points.append(PointStruct(id=uuid.uuid4().hex, vector=vector, payload=payload))
             except Exception as e:
-                print(f"{Colors.ERROR}[Ingestion Error on chunk {i}: {e}]{Colors.RESET}")
+                print(f"{Colors.ERROR}[Embedding Error on chunk {i}: {e}]{Colors.RESET}")
         
-        # 3. Bulk Upsert to the Qdrant Vault
         if points:
             self.qdrant.upsert(collection_name=self.collection, points=points)
-            print(f"{Colors.MEMORY}[Memory Manager]: Successfully saved {len(points)} chunks from '{filename}'.{Colors.RESET}")
+            print(f"{Colors.MEMORY}[Memory Manager]: Successfully saved {len(points)} vectors to Qdrant.{Colors.RESET}")
             return True
         return False
 
@@ -159,11 +137,7 @@ class JarvisMemory:
             return "RECALL"
 
         # 2. The LLM Fallback
-        prompt = f"""You are a strict internal routing agent. Analyze the user's query: "{user_query}"
-        1. RECALL: Use if the user asks to remember a specific detail, fact, or something mentioned in the past.
-        2. SUMMARY: Use ONLY if the user is asking for a broad recap of the chat.
-        3. CHAT: Use for EVERYTHING ELSE.
-        Respond with EXACTLY ONE WORD: [RECALL, SUMMARY, or CHAT]."""
+        prompt = Config.LLM_FALLBACK_QUERY_TEMPLATE.format(user_query=user_query)
         
         raw_intent = self.brain.process_background_task(prompt, max_tokens=10).upper()
         print(f"{Colors.SYSTEM}[LLM Router Output: {raw_intent.strip()}]{Colors.RESET}") 
@@ -173,12 +147,8 @@ class JarvisMemory:
         return "CHAT"
 
     def _deconstruct_query(self, user_query: str) -> list:
-        prompt = f"""You are a database query generator. 
-        Convert the following question into a declarative statement to search a database.
-        Example: "What is my name?" -> "The user's name is"
-        If the input is NOT a question (e.g., "Thank you", "Yes it is"), respond with exactly the word: SKIP.
-        Question: "{user_query}"
-        RESPOND WITH THE RAW STATEMENT ONLY. NO CONVERSATIONAL FILLER."""
+        # Pull the template from Config and inject the user_query
+        prompt = Config.DECONSTRUCT_QUERY_TEMPLATE.format(user_query=user_query)
         
         raw_output = self.brain.process_background_task(prompt, max_tokens=15)
         cleaned_output = raw_output.replace('"', '').replace('*', '').strip()
@@ -190,18 +160,12 @@ class JarvisMemory:
 
     def _update_summary(self):
         if self.turn_count % 5 == 0 and len(self.raw_history) >= 5:
-            prompt = "Summarize the key points of the conversation so far in one short paragraph."
+            prompt = Config.UPDATE_SUMMARY_PROMPT
             self.running_summary = self.brain.process_background_task(prompt, max_tokens=100)
 
     def get_context_payload(self, user_query: str):
-        # The Pronoun Primer & Document Reader Upgrade
-        system_prompt = (
-            "You are JARVIS, a highly intelligent and concise AI. "
-            "When the user says 'I', 'me', or 'my', they are referring to themselves. "
-            "The user may also extract document text and provide it to you in the context block below. "
-            "Use the provided context to answer questions about the user or the provided documents. "
-            "If the answer is not in the context below, DO NOT guess, do not make up an answer, and do not apologize about your capabilities. Say you don't know."
-        )
+        # Pull the base persona and rules from the Control Room
+        system_prompt = Config.SYSTEM_PROMPT
         
         # --- THE HEURISTIC OVERRIDE ---
         # Intercept document commands before the LLM gets confused
@@ -275,7 +239,7 @@ class JarvisMemory:
                 
             if context_pieces:
                 unique_context = "\n".join(list(set(context_pieces)))
-                system_prompt += f"\n\n[FACTS AND CONTEXT ABOUT THE USER]\n{unique_context}"
+                system_prompt += Config.CONTEXT_INJECTION_TEMPLATE.format(context=unique_context)
                 
                 # FIRE THE GHOST THREAD!
                 threading.Thread(target=self._reinforce_memories_background, args=(used_point_ids,), daemon=True).start()
@@ -287,6 +251,6 @@ class JarvisMemory:
         print(f"{Colors.ROUTER}[HRE ROUTER]: Rolling Summary + Window{Colors.RESET}")
         self._update_summary()
         if self.running_summary:
-            system_prompt += f"\n\n[CONVERSATION SUMMARY]\n{self.running_summary}"
+            system_prompt += Config.SUMMARY_INJECTION_TEMPLATE.format(summary=self.running_summary)
             
         return [{"role": "system", "content": system_prompt}] + self.raw_history

@@ -14,8 +14,8 @@ if src_dir not in sys.path:
 # ==========================================
 # MODULAR IMPORTS
 # ==========================================
-from core.brain import JarvisBrain
-from core.memory import JarvisMemory
+from core.brain import LocalStreamBrain
+from core.memory import AsyncMemory
 #from core.mouth import AsyncMouth
 
 # ==========================================
@@ -41,8 +41,8 @@ st.title("JARVIS Command Center")
 @st.cache_resource(show_spinner="Booting JARVIS Core Engine...")
 def load_engine():
     """Loads the Brain and Memory exactly once and keeps them in RAM."""
-    brain = JarvisBrain(model_id="local-model")
-    memory = JarvisMemory(model_id="local-model")
+    brain = LocalStreamBrain(model_id="local-model")
+    memory = AsyncMemory(model_id="local-model")
     return brain, memory
 
 brain, memory = load_engine()

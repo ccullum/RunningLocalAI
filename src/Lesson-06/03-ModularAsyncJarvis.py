@@ -21,18 +21,18 @@ if sys.platform == "win32" and os.environ.get("PYTHONUTF8") != "1":
 # MODULAR IMPORTS
 # ==========================================
 from core.colors import Colors
-from core.ear import JarvisEar
-from core.brain import JarvisBrain
-from core.memory import JarvisMemory
+from core.ear import VADTranscriptEar
+from core.brain import LocalStreamBrain
+from core.memory import AsyncMemory
 from core.mouth import AsyncMouth
 
 def main():
     print(f"\n{Colors.SYSTEM}[System] Booting Modular JARVIS Core V1.1 (Async/Barge-in)...\n{Colors.RESET}")
     
     # 1. Initialize Modules
-    ear = JarvisEar()
-    brain = JarvisBrain(model_id="local-model")
-    memory = JarvisMemory(model_id="local-model")
+    ear = VADTranscriptEar()
+    brain = LocalStreamBrain(model_id="local-model")
+    memory = AsyncMemory(model_id="local-model")
     mouth = AsyncMouth() # Paths are handled by the default args we set!
     
     mouth.enqueue_sentence("All core modules are loaded. I am ready.")
