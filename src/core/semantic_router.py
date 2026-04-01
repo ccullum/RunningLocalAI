@@ -1,6 +1,7 @@
 import math
 from .colors import Colors
 from .config import Config
+from utils.metrics import telemetry
 
 class SemanticRouter:
     def __init__(self, embed_client, embed_model):
@@ -16,6 +17,7 @@ class SemanticRouter:
         
         self._precompute_anchors()
 
+    @telemetry.measure("Anchor Pre-computation Time")
     def _precompute_anchors(self):
         """Embeds the anchor phrases into math upon boot so we don't waste time later."""
         print(f"{Colors.SYSTEM}[Router] Pre-computing anchor vectors...{Colors.RESET}")
@@ -41,6 +43,7 @@ class SemanticRouter:
             return 0.0
         return dot_product / (norm_a * norm_b)
 
+    @telemetry.measure("Semantic Routing Math & Embed Time")
     def route(self, user_query: str) -> str:
         """Embeds the user's query and mathematically finds the closest intent."""
         try:

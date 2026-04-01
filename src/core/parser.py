@@ -4,6 +4,7 @@ import pytesseract
 from PIL import Image
 from .colors import Colors
 from .config import Config
+from utils.metrics import telemetry # <-- Import the global telemetry logger
 
 pytesseract.pytesseract.tesseract_cmd = Config.TESSERACT_CMD_PATH
 
@@ -24,6 +25,7 @@ class DocumentParser:
         else:
             raise ValueError(f"Unsupported file type: {ext}")
 
+    @telemetry.measure("Image OCR Time") # <-- Track standalone image OCR
     def _parse_image(self, file_bytes: bytes) -> str:
         """Runs standard OCR on a standalone image file."""
         print(f"{Colors.SYSTEM}[Parser] Running OCR on Image...{Colors.RESET}")
@@ -31,6 +33,7 @@ class DocumentParser:
         text = pytesseract.image_to_string(image)
         return text.strip()
 
+    @telemetry.measure("PDF Extraction & OCR Time") # <-- Track the heaviest CPU task
     def _parse_pdf_with_ocr(self, file_bytes: bytes) -> str:
         """
         Layout-Aware Parsing: Reads text from a PDF page, then hunts for 
@@ -38,7 +41,8 @@ class DocumentParser:
         """
         print(f"{Colors.SYSTEM}[Parser] Parsing PDF and scanning for embedded images...{Colors.RESET}")
         full_text = []
-        
+        image_count = 0
+
         # Open the PDF from bytes
         pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
         
@@ -56,6 +60,7 @@ class DocumentParser:
             if image_list:
                 print(f"{Colors.SYSTEM}[Parser] Found {len(image_list)} image(s) on page {page_num + 1}. Running OCR...{Colors.RESET}")
                 for img_index, img in enumerate(image_list):
+                    image_count += 1
                     xref = img[0]
                     base_image = pdf_document.extract_image(xref)
                     image_bytes = base_image["image"]
@@ -64,8 +69,6 @@ class DocumentParser:
                     img_obj = Image.open(io.BytesIO(image_bytes))
                     
                     # --- THE NON-DESTRUCTIVE FIX ---
-                    # If the PDF image is formatted for print (CMYK), gracefully 
-                    # convert it to standard digital color (RGB) so PNG doesn't crash.
                     if img_obj.mode == 'CMYK':
                         img_obj = img_obj.convert('RGB')
                     
@@ -76,14 +79,15 @@ class DocumentParser:
                     ocr_text = pytesseract.image_to_string(img_obj).strip()
                     
                     if ocr_text:
-                        # Inject the OCR text directly into the page stream!
                         page_content.append(f"\n[EMBEDDED IMAGE/TABLE DATA]:\n{ocr_text}\n")
             
             full_text.append("\n".join(page_content))
             
         pdf_document.close()
+        telemetry.record_value("Total Images Processed", image_count)
         return "\n".join(full_text)
     
+    @telemetry.measure("Total Document Ingestion Time") # <-- Track the full pipeline
     def extract_and_chunk(self, file_bytes: bytes, filename: str) -> list:
         """The master method: Extracts text and slices it into overlapping chunks."""
         # 1. Extract the raw text

@@ -18,6 +18,7 @@ from core.brain import LocalStreamBrain
 from core.memory import AsyncMemory
 from core.mouth import AsyncMouth
 from core.parser import DocumentParser
+from utils.metrics import telemetry
 
 # ==========================================
 # STREAMLIT PAGE CONFIGURATION
@@ -65,32 +66,33 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload a file", type=["txt", "pdf", "png", "jpg", "jpeg"])
     
     if uploaded_file is not None:
-        if st.button("🧠 Ingest Document"):
-            with st.spinner("Extracting, parsing, and embedding..."):
-                try:
-                    # Read bytes and file name
-                    file_bytes = uploaded_file.read()
-                    filename = uploaded_file.name
+        if st.sidebar.button("Process Document"):
+            with st.spinner("Processing document... This may take a while for large PDFs."):
+                
+                # --- TELEMETRY: Start of Document Ingestion ---
+                telemetry.reset_session()
+                telemetry.start("Total Pipeline Time")
+                telemetry.start("Document Processing Wait Time")
+                
+                # 1. Read the file bytes
+                file_bytes = uploaded_file.read()
+                filename = uploaded_file.name
+                
+                # 2. Parse and chunk the document
+                chunks = parser.extract_and_chunk(file_bytes, filename)
+                
+                # 3. Save to Vector Database
+                success = memory.save_document_chunks(filename, chunks)
+                
+                if success:
+                    st.sidebar.success(f"Successfully processed {filename} into {len(chunks)} chunks!")
+                else:
+                    st.sidebar.error("Failed to process document.")
                     
-                    # 1. Pass to Parser to extract text AND slice it into chunks
-                    chunks = parser.extract_and_chunk(file_bytes, filename)
-                    
-                    # 2. Pass the list of chunks to Memory for vector embedding and storage
-                    if chunks:
-                        success = memory.save_document_chunks(filename, chunks)
-                        
-                        if success:
-                            st.success(f"Successfully memorized {len(chunks)} chunks from {filename}!")
-                            sys_note = f"[System Note]: The user just uploaded and ingested a file named '{filename}'."
-                            st.session_state.messages.append({"role": "system", "content": sys_note})
-                            memory.raw_history.append({"role": "system", "content": sys_note})
-                        else:
-                            st.error("Document processed, but failed to save vectors to the database.")
-                    else:
-                        st.warning("No usable text could be extracted or chunked from this file.")
-                        
-                except Exception as e:
-                    st.error(f"Ingestion Pipeline Error: {e}")
+                # --- TELEMETRY: End of Document Ingestion ---
+                telemetry.stop("Document Processing Wait Time")
+                telemetry.stop("Total Pipeline Time")
+                telemetry.generate_report()
 
 st.title("JARVIS Command Center")
 
@@ -106,10 +108,18 @@ for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
+# Make sure to import telemetry at the top of your file!
+# from utils.metrics import telemetry
+
 # ==========================================
 # CHAT INTERFACE
 # ==========================================
 if user_input := st.chat_input("Message JARVIS..."):
+    
+    # --- TELEMETRY: Start of turn ---
+    telemetry.reset_session()
+    telemetry.start("Total Pipeline Time")
+    telemetry.start("Total User Wait Time")
     
     # 1. Display User Message
     st.chat_message("user").markdown(user_input)
@@ -124,8 +134,16 @@ if user_input := st.chat_input("Message JARVIS..."):
         response_placeholder = st.empty()
         full_response = ""
         
+        first_chunk_received = False
+        
         for chunk in brain.stream_response(context_payload):
             if chunk.choices[0].delta.content:
+                
+                # --- TELEMETRY: End User Wait Time on first character ---
+                if not first_chunk_received:
+                    telemetry.stop("Total User Wait Time")
+                    first_chunk_received = True
+                    
                 full_response += chunk.choices[0].delta.content
                 response_placeholder.markdown(full_response + "▌")
                 
@@ -139,3 +157,7 @@ if user_input := st.chat_input("Message JARVIS..."):
     if voice_enabled:
         print("[WebUI] Sending response to Piper TTS...")
         threading.Thread(target=mouth.speak, args=(full_response,), daemon=True).start()
+
+    # --- TELEMETRY: End of turn ---
+    telemetry.stop("Total Pipeline Time")
+    telemetry.generate_report()

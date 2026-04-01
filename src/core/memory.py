@@ -47,8 +47,11 @@ class AsyncMemory:
         is_question = "?" in user_input or any(query_lower.startswith(q) for q in 
             ["what", "who", "where", "when", "why", "how", "do ", "does ", "did ", "is ", "are ", "can ", "could "])
         
-        if is_question:
-            print(f"{Colors.MEMORY}[Memory Filter]: Ignored question. Not saving to long-term DB.{Colors.RESET}")
+        is_command = any(query_lower.startswith(c) for c in 
+            ["please", "summarize", "tell me", "give me", "can you", "could you"])
+        
+        if is_question or is_command:
+            print(f"{Colors.MEMORY}[Memory Filter]: Ignored question/command. Not saving to long-term DB.{Colors.RESET}")
             return
             
         try:
@@ -79,12 +82,14 @@ class AsyncMemory:
         """Takes pre-sliced chunks, embeds them, and saves them to Qdrant."""
         print(f"{Colors.SYSTEM}[Memory Manager]: Embedding {len(chunks)} chunks from '{filename}'...{Colors.RESET}")
         
+        telemetry.start("Vector Embedding Time")
+
         points = []
         current_time = int(time.time())
         
         for i, chunk in enumerate(chunks):
             clean_chunk = chunk.replace('\n', ' ').strip()
-            if len(clean_chunk) < 50: 
+            if len(clean_chunk) < Config.MIN_CHUNK_CHARACTER_COUNT: 
                 continue
                 
             try:
@@ -104,6 +109,9 @@ class AsyncMemory:
             except Exception as e:
                 print(f"{Colors.ERROR}[Embedding Error on chunk {i}: {e}]{Colors.RESET}")
         
+        telemetry.record_value("Total Chunks Embedded", len(points))
+        telemetry.stop("Vector Embedding Time")
+
         if points:
             self.qdrant.upsert(collection_name=self.collection, points=points)
             print(f"{Colors.MEMORY}[Memory Manager]: Successfully saved {len(points)} vectors to Qdrant.{Colors.RESET}")
@@ -140,7 +148,7 @@ class AsyncMemory:
         # 2. The LLM Fallback
         prompt = Config.LLM_FALLBACK_QUERY_TEMPLATE.format(user_query=user_query)
         
-        raw_intent = self.brain.process_background_task(prompt, max_tokens=10).upper()
+        raw_intent = self.brain.process_background_task(prompt, max_tokens=Config.LLM_ROUTING_MAX_TOKENS).upper()
         print(f"{Colors.SYSTEM}[LLM Router Output: {raw_intent.strip()}]{Colors.RESET}") 
         
         if "RECALL" in raw_intent: return "RECALL"
@@ -172,9 +180,9 @@ class AsyncMemory:
         return [cleaned_output]
 
     def _update_summary(self):
-        if self.turn_count % 5 == 0 and len(self.raw_history) >= 5:
+        if self.turn_count % Config.SUMMARY_TRIGGER_TURN_COUNT == 0 and len(self.raw_history) >= Config.SUMMARY_TRIGGER_TURN_COUNT:
             prompt = Config.UPDATE_SUMMARY_PROMPT
-            self.running_summary = self.brain.process_background_task(prompt, max_tokens=100)
+            self.running_summary = self.brain.process_background_task(prompt, max_tokens=Config.LLM_SUMMARY_MAX_TOKENS)
 
     def get_context_payload(self, user_query: str):
         # Pull the base persona and rules from the Control Room
@@ -197,7 +205,9 @@ class AsyncMemory:
             for sq in search_queries:
                 try:
                     vector = self.brain.client.embeddings.create(input=sq, model=self.embed_model).data[0].embedding
-                    results = self.qdrant.query_points(collection_name=self.collection, query=vector, limit=5)
+                    results = self.qdrant.query_points(collection_name=self.collection, 
+                                                       query=vector, 
+                                                       limit=Config.VECTOR_SEARCH_LIMIT)
                     raw_results.extend(results.points)
                 except Exception as e:
                     pass
@@ -216,11 +226,14 @@ class AsyncMemory:
                     age_in_seconds = current_time - last_accessed
                     age_in_days = age_in_seconds / 86400.0 # 86400 seconds in a day
                     
-                    # 2. Calculate Decay (Loses 1% power per day ignored, max 50% penalty)
-                    decay_multiplier = max(0.5, 1.0 - (age_in_days * 0.01))
+                    # 2. Calculate Decay 
+                    decay_multiplier = max(
+                        Config.MEMORY_DECAY_FLOOR, 
+                        1.0 - (age_in_days * Config.MEMORY_DECAY_RATE)
+                    )
                     
                     # 3. The Stanford Cognitive Equation
-                    final_score = base_score * (1 + (0.1 * freq_weight)) * decay_multiplier
+                    final_score = base_score * (1 + (Config.MEMORY_REINFORCE_WEIGHT * freq_weight)) * decay_multiplier
                     
                     scored_memories[p.id] = {
                         "text": p.payload.get('text', ''),
@@ -233,7 +246,7 @@ class AsyncMemory:
             context_pieces = []
             used_point_ids = []
             
-            for mem in sorted_memories[:3]:
+            for mem in sorted_memories[:Config.CONTEXT_CHUNKS_LIMIT]:
                 print(f"{Colors.MEMORY}[Path Weight {mem['final_score']:.2f}]: {mem['text']}{Colors.RESET}")
                 context_pieces.append(mem['text'])
                 used_point_ids.append(mem['point_id'])

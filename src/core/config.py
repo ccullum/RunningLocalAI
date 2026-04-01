@@ -27,7 +27,7 @@ class Config:
     QDRANT_STORAGE_PATH = os.path.join(DATA_DIR, "qdrant_storage")
     CHUNK_SIZE = 1000
     CHUNK_OVERLAP = 200
-    
+
     # --- AUDIO (Ear & Mouth) ---
     STT_MODEL = "tiny.en"
     EAR_DEVICE = "cpu"
@@ -79,22 +79,29 @@ class Config:
     # --- SEMANTIC ROUTER ANCHORS ---
     # These dictate the "center of gravity" for each intent
     ROUTER_RECALL_ANCHORS = [
-        "What did the document say about",
-        "Search my files for",
-        "Do you remember when I told you",
-        "Look up the PDF",
-        "What was that fact I asked you to remember",
-        "Can you find the reference to",
-        "According to the text I uploaded"
+        "What did I say earlier?",
+        "Do you remember my name?",
+        "What was that fact I told you?",
+        # --- Move the document triggers here! ---
+        "Summarize chapter 1 from the document.",
+        "What did the file report.pdf say about this?",
+        "Give me a breakdown of the specific pdf file.",
+        "Summarize the main points of the attached document.",
+        "Summarize the file report.pdf for me.",
+        "What are the key points of the document?",
+        "Please summarize the attached document.",
+        "Could you give me a summary of chapter 1?"
     ]
-    
+
     ROUTER_SUMMARY_ANCHORS = [
-        "Can you summarize our conversation",
-        "Give me a recap of what we just talked about",
+        # Keep this strictly for conversational/chat summaries
+        "Summarize this text.",
         "What is the summary of this chat",
-        "Bring me up to speed on our discussion"
-    ]
-    
+        "Give me the TLDR.",
+        "Give me a recap of what we just talked about",
+        "I would appreciate it if you could recap our conversation."
+    ]   
+
     # We define a strict similarity threshold. 
     # If the user's prompt doesn't score at least this high against ANY anchor, it safely defaults to CHAT.
     ROUTER_CONFIDENCE_THRESHOLD = 0.65
@@ -105,6 +112,27 @@ class Config:
 
     # --- METRICS & TELEMETRY ---
     ENABLE_METRICS = True
+
+    # --- LLM TASK TUNING ---
+    # Standardizing the token limits for internal "thinking" tasks
+    LLM_ROUTING_MAX_TOKENS = 10
+    LLM_DECONSTRUCT_MAX_TOKENS = 15
+    LLM_SUMMARY_MAX_TOKENS = 100
+    
+    # --- COGNITIVE TUNING (The "Brain" Math) ---
+    # Controls how fast memories "fade" or "strengthen"
+    MEMORY_DECAY_FLOOR = 0.5        # Max 50% penalty for old/ignored memories
+    MEMORY_DECAY_RATE = 0.01        # Loses 1% power per day of inactivity
+    MEMORY_REINFORCE_WEIGHT = 0.1   # Gain 10% power per retrieval
+    
+    # --- FILTERS & HEURISTICS ---
+    # Minimum characters required to bother embedding a chunk
+    MIN_CHUNK_CHARACTER_COUNT = 50
+    # How often to trigger the automatic rolling summary (every X turns)
+    SUMMARY_TRIGGER_TURN_COUNT = 5
+    # The limit for context pieces sent to the LLM (The fix for your Chapter 1 issue!)
+    CONTEXT_CHUNKS_LIMIT = 5
+    VECTOR_SEARCH_LIMIT = 7  
 
 # This runs immediately when config.py is imported!
 os.makedirs(TEMP_DIR, exist_ok=True)
