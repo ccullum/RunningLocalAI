@@ -5,7 +5,7 @@ import warnings
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
-from utils.metrics import telemetry
+from utils.metrics import perf_tracker
 from .brain import LocalStreamBrain
 from .colors import Colors
 from .config import Config
@@ -52,10 +52,13 @@ class AsyncMemory:
         
         if is_question or is_command:
             print(f"{Colors.MEMORY}[Memory Filter]: Ignored question/command. Not saving to long-term DB.{Colors.RESET}")
+            perf_tracker.record_value("Memory Action", f"Ignored question/command. Not saving to long-term DB.")
             return
             
         try:
             print(f"{Colors.MEMORY}[Memory Manager]: Embedding fact into long-term storage...{Colors.RESET}")
+            perf_tracker.record_value("Memory Action", f"Embedding fact into long-term storage.")
+
             vector = self.brain.client.embeddings.create(input=user_input, model=self.embed_model).data[0].embedding
             
             # THE FWA PAYLOAD
@@ -73,6 +76,8 @@ class AsyncMemory:
             )
         except Exception as e:
             print(f"{Colors.ERROR}[Memory Save Error: {e}]{Colors.RESET}")
+            perf_tracker.record_value("Memory Action", f"Save Error: {e}")
+
 
     def add_assistant_message(self, assistant_response: str):
         self.raw_history.append({"role": "assistant", "content": assistant_response})
@@ -81,8 +86,10 @@ class AsyncMemory:
     def save_document_chunks(self, filename: str, chunks: list) -> bool:
         """Takes pre-sliced chunks, embeds them, and saves them to Qdrant."""
         print(f"{Colors.SYSTEM}[Memory Manager]: Embedding {len(chunks)} chunks from '{filename}'...{Colors.RESET}")
+        perf_tracker.record_value("Memory Action", f"Embedding {len(chunks)} chunks from '{filename}'")
+
         
-        telemetry.start("Vector Embedding Time")
+        perf_tracker.start("Vector Embedding Time")
 
         points = []
         current_time = int(time.time())
@@ -109,12 +116,14 @@ class AsyncMemory:
             except Exception as e:
                 print(f"{Colors.ERROR}[Embedding Error on chunk {i}: {e}]{Colors.RESET}")
         
-        telemetry.record_value("Total Chunks Embedded", len(points))
-        telemetry.stop("Vector Embedding Time")
+        perf_tracker.record_value("Total Chunks Embedded", len(points))
+        perf_tracker.stop("Vector Embedding Time")
 
         if points:
             self.qdrant.upsert(collection_name=self.collection, points=points)
             print(f"{Colors.MEMORY}[Memory Manager]: Successfully saved {len(points)} vectors to Qdrant.{Colors.RESET}")
+            perf_tracker.record_value("Memory Action", f"Successfully saved {len(points)} vectors to Qdrant.")
+
             return True
         return False
 
@@ -136,13 +145,14 @@ class AsyncMemory:
         except Exception as e:
             print(f"{Colors.ERROR}[Background Reinforcement Error: {e}]{Colors.RESET}")
 
-    @telemetry.measure("Router [LLM 8B]")
+    @perf_tracker.measure("Router [LLM 8B]")
     def _route_intent_llm(self, user_query: str) -> str:        # 1. The Architect's Override (Fast Keyword Heuristics)
         query_lower = user_query.lower()
         recall_triggers = ["what is my", "what's my", "do you remember", "did i say", "did i tell", "what was my"]
         
         if any(trigger in query_lower for trigger in recall_triggers):
             print(f"{Colors.WARNING}[ROUTER OVERRIDE]: Keyword triggered RECALL{Colors.RESET}")
+            perf_tracker.record_value("HRE Router", f"Keyword triggered RECALL")
             return "RECALL"
 
         # 2. The LLM Fallback
@@ -155,7 +165,6 @@ class AsyncMemory:
         if "SUMMARY" in raw_intent: return "SUMMARY"
         return "CHAT"
 
-    @telemetry.measure("Router [Semantic Math]")
     def _route_intent_semantic(self, user_query: str) -> str:
         # We don't need keyword heuristics anymore, the math handles it all!
         return self.semantic_router.route(user_query)
@@ -193,6 +202,7 @@ class AsyncMemory:
 
         if intent == "RECALL":
             print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
+            perf_tracker.record_value("HRE Router", f"FWA Vector RAG")
             search_queries = [user_query]
             try:
                 deconstructed = self._deconstruct_query(user_query)
@@ -263,6 +273,7 @@ class AsyncMemory:
             return [{"role": "system", "content": system_prompt}] + self.raw_history[-1:]
 
         print(f"{Colors.ROUTER}[HRE ROUTER]: Rolling Summary + Window{Colors.RESET}")
+        perf_tracker.record_value("HRE Router", f"Rolling Summary + Window")
         self._update_summary()
         if self.running_summary:
             system_prompt += Config.SUMMARY_INJECTION_TEMPLATE.format(summary=self.running_summary)

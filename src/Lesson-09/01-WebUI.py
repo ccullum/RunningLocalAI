@@ -18,7 +18,8 @@ from core.brain import LocalStreamBrain
 from core.memory import AsyncMemory
 from core.mouth import AsyncMouth
 from core.parser import DocumentParser
-from utils.metrics import telemetry
+from utils.metrics import perf_tracker
+from utils.telemetry import AutoBenchmark
 
 # ==========================================
 # STREAMLIT PAGE CONFIGURATION
@@ -48,6 +49,9 @@ def get_parser():
 mouth = get_mouth()
 parser = get_parser()
 
+# Initialize the hardware monitor
+hardware_monitor = AutoBenchmark()
+
 # ==========================================
 # SIDEBAR SETTINGS & UPLOADER
 # ==========================================
@@ -69,10 +73,10 @@ with st.sidebar:
         if st.sidebar.button("Process Document"):
             with st.spinner("Processing document... This may take a while for large PDFs."):
                 
-                # --- TELEMETRY: Start of Document Ingestion ---
-                telemetry.reset_session()
-                telemetry.start("Total Pipeline Time")
-                telemetry.start("Document Processing Wait Time")
+                # --- perf_tracker: Start of Document Ingestion ---
+                perf_tracker.reset_session()
+                perf_tracker.start("Total Pipeline Time")
+                perf_tracker.start("Document Processing Wait Time")
                 
                 # 1. Read the file bytes
                 file_bytes = uploaded_file.read()
@@ -89,10 +93,10 @@ with st.sidebar:
                 else:
                     st.sidebar.error("Failed to process document.")
                     
-                # --- TELEMETRY: End of Document Ingestion ---
-                telemetry.stop("Document Processing Wait Time")
-                telemetry.stop("Total Pipeline Time")
-                telemetry.generate_report()
+                # --- perf_tracker: End of Document Ingestion ---
+                perf_tracker.stop("Document Processing Wait Time")
+                perf_tracker.stop("Total Pipeline Time")
+                perf_tracker.generate_report()
 
 st.title("JARVIS Command Center")
 
@@ -108,19 +112,17 @@ for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-# Make sure to import telemetry at the top of your file!
-# from utils.metrics import telemetry
-
 # ==========================================
 # CHAT INTERFACE
 # ==========================================
 if user_input := st.chat_input("Message JARVIS..."):
     
-    # --- TELEMETRY: Start of turn ---
-    telemetry.reset_session()
-    telemetry.start("Total Pipeline Time")
-    telemetry.start("Total User Wait Time")
-    
+    # --- perf_tracker: Start of turn ---
+    perf_tracker.reset_session()
+    perf_tracker.start("Total Pipeline Time")
+    perf_tracker.start("Total User Wait Time")
+    hardware_monitor.start_monitoring()
+
     # 1. Display User Message
     st.chat_message("user").markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -139,9 +141,9 @@ if user_input := st.chat_input("Message JARVIS..."):
         for chunk in brain.stream_response(context_payload):
             if chunk.choices[0].delta.content:
                 
-                # --- TELEMETRY: End User Wait Time on first character ---
+                # --- perf_tracker: End User Wait Time on first character ---
                 if not first_chunk_received:
-                    telemetry.stop("Total User Wait Time")
+                    perf_tracker.stop("Total User Wait Time")
                     first_chunk_received = True
                     
                 full_response += chunk.choices[0].delta.content
@@ -158,6 +160,12 @@ if user_input := st.chat_input("Message JARVIS..."):
         print("[WebUI] Sending response to Piper TTS...")
         threading.Thread(target=mouth.speak, args=(full_response,), daemon=True).start()
 
-    # --- TELEMETRY: End of turn ---
-    telemetry.stop("Total Pipeline Time")
-    telemetry.generate_report()
+    # --- perf_tracker: End of turn ---
+    perf_tracker.stop("Total Pipeline Time")
+    avg_cpu, avg_ram = hardware_monitor.stop_monitoring()
+    
+    # 1. Do the math and print to console
+    perf_tracker.generate_report()
+    
+    # 2. NOW dump the fully calculated dictionary into the CSV!
+    hardware_monitor.log_full_report(perf_tracker.session_data, avg_cpu, avg_ram)

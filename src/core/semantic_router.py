@@ -1,7 +1,7 @@
 import math
 from .colors import Colors
 from .config import Config
-from utils.metrics import telemetry
+from utils.metrics import perf_tracker
 
 class SemanticRouter:
     def __init__(self, embed_client, embed_model):
@@ -17,7 +17,7 @@ class SemanticRouter:
         
         self._precompute_anchors()
 
-    @telemetry.measure("Anchor Pre-computation Time")
+    @perf_tracker.measure("Anchor Pre-computation Time")
     def _precompute_anchors(self):
         """Embeds the anchor phrases into math upon boot so we don't waste time later."""
         print(f"{Colors.SYSTEM}[Router] Pre-computing anchor vectors...{Colors.RESET}")
@@ -43,7 +43,7 @@ class SemanticRouter:
             return 0.0
         return dot_product / (norm_a * norm_b)
 
-    @telemetry.measure("Semantic Routing Math & Embed Time")
+    @perf_tracker.measure("Semantic Routing Math & Embed Time")
     def route(self, user_query: str) -> str:
         """Embeds the user's query and mathematically finds the closest intent."""
         try:
@@ -64,10 +64,12 @@ class SemanticRouter:
                     best_intent = intent
 
         print(f"{Colors.ROUTER}[Semantic Router]: Best Match = {best_intent} (Score: {highest_score:.2f}){Colors.RESET}")
+        perf_tracker.record_value("Semantic Router", f"Best Match = {best_intent} (Score: {highest_score:.2f})")
 
         # If it's too ambiguous, default to standard chatting
         if highest_score >= Config.ROUTER_CONFIDENCE_THRESHOLD:
             return best_intent
         else:
             print(f"{Colors.ROUTER}[Semantic Router]: Below threshold ({Config.ROUTER_CONFIDENCE_THRESHOLD}). Falling back to CHAT.{Colors.RESET}")
+            perf_tracker.record_value("Semantic Router", f"Below threshold ({Config.ROUTER_CONFIDENCE_THRESHOLD}). Falling back to CHAT.")
             return "CHAT"

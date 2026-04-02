@@ -1,7 +1,7 @@
 from openai import OpenAI
 from .colors import Colors
 from .config import Config
-from utils.metrics import telemetry # <-- Using absolute path for utils
+from utils.metrics import perf_tracker 
 
 class LocalStreamBrain:
     """Manages the connection to the local LLM and handles streaming responses."""
@@ -14,8 +14,8 @@ class LocalStreamBrain:
     def stream_response(self, messages, temperature=Config.LLM_CHAT_TEMPERATURE, max_tokens=Config.LLM_CHAT_MAX_TOKENS):
         """Yields chunks of the LLM response for asynchronous processing."""
         
-        telemetry.start("LLM Generation Time")
-        telemetry.start("Time To First Token (TTFT)")
+        perf_tracker.start("LLM Generation Time")
+        perf_tracker.start("Time To First Token (TTFT)")
         
         try:
             stream = self.client.chat.completions.create(
@@ -32,22 +32,22 @@ class LocalStreamBrain:
             for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     if not first_token_recorded:
-                        telemetry.stop("Time To First Token (TTFT)")
+                        perf_tracker.stop("Time To First Token (TTFT)")
                         first_token_recorded = True
                     
                     token_count += 1
                 yield chunk
                 
-            telemetry.record_value("LLM Output Tokens", token_count)
-            telemetry.stop("LLM Generation Time")
+            perf_tracker.record_value("LLM Output Tokens", token_count)
+            perf_tracker.stop("LLM Generation Time")
             
         except Exception as e:
             print(f"{Colors.ERROR}[Brain Connection Error: {e}]{Colors.RESET}")
-            telemetry.stop("LLM Generation Time")
-            telemetry.stop("Time To First Token (TTFT)")
+            perf_tracker.stop("LLM Generation Time")
+            perf_tracker.stop("Time To First Token (TTFT)")
             return []
             
-    @telemetry.measure("Background LLM Task")
+    @perf_tracker.measure("Background LLM Task")
     def process_background_task(self, prompt, max_tokens=Config.LLM_TASK_MAX_TOKENS):
         """Utility method for non-streaming background tasks (like HRE routing)."""
         try:

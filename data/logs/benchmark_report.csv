@@ -1,0 +1,2 @@
+Timestamp,Model,Context Chunks Limit,Avg CPU (%),Avg RAM (GB),Memory Action,Semantic Router,Semantic Routing Math & Embed Time,HRE Router,Background LLM Task,TTFT,Total User Wait Time,LLM Output Tokens,LLM Generation Time,Total Pipeline Time,TPS
+2026-04-02 11:58:14,ministral-3-3b-instruct-2512@q5_k_m,5,16.98,16.17,Ignored question/command. Not saving to long-term DB.,Best Match = RECALL (Score: 0.80),2.0906959000003553,FWA Vector RAG,0.7455413000006956,6.174106600001323,9.070590099998299,342,20.92572509999991,23.822620900000402,16.34351968047222

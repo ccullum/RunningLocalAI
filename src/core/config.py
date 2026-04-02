@@ -8,6 +8,10 @@ load_dotenv()
 CORE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(CORE_DIR, "..", "..", "data"))
 TEMP_DIR = os.path.join(DATA_DIR, "temp")
+LOG_DIR = os.path.join(DATA_DIR, "logs")
+# This runs immediately when config.py is imported!
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 
 class Config:
     # --- LLM (Brain) ---
@@ -82,7 +86,7 @@ class Config:
         "What did I say earlier?",
         "Do you remember my name?",
         "What was that fact I told you?",
-        # --- Move the document triggers here! ---
+        # Document triggers
         "Summarize chapter 1 from the document.",
         "What did the file report.pdf say about this?",
         "Give me a breakdown of the specific pdf file.",
@@ -112,6 +116,9 @@ class Config:
 
     # --- METRICS & TELEMETRY ---
     ENABLE_METRICS = True
+    TELEMETRY_CSV_NAME = "benchmark_report.csv"
+    TELEMETRY_CSV_PATH = os.path.join(LOG_DIR, TELEMETRY_CSV_NAME)
+    TELEMETRY_POLL_INTERVAL = 0.5  # How often (in seconds) to poll CPU/RAM
 
     # --- LLM TASK TUNING ---
     # Standardizing the token limits for internal "thinking" tasks

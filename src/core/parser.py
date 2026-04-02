@@ -4,7 +4,7 @@ import pytesseract
 from PIL import Image
 from .colors import Colors
 from .config import Config
-from utils.metrics import telemetry # <-- Import the global telemetry logger
+from utils.metrics import perf_tracker # <-- Import the global perf_tracker logger
 
 pytesseract.pytesseract.tesseract_cmd = Config.TESSERACT_CMD_PATH
 
@@ -25,7 +25,7 @@ class DocumentParser:
         else:
             raise ValueError(f"Unsupported file type: {ext}")
 
-    @telemetry.measure("Image OCR Time") # <-- Track standalone image OCR
+    @perf_tracker.measure("Image OCR Time") # <-- Track standalone image OCR
     def _parse_image(self, file_bytes: bytes) -> str:
         """Runs standard OCR on a standalone image file."""
         print(f"{Colors.SYSTEM}[Parser] Running OCR on Image...{Colors.RESET}")
@@ -33,7 +33,7 @@ class DocumentParser:
         text = pytesseract.image_to_string(image)
         return text.strip()
 
-    @telemetry.measure("PDF Extraction & OCR Time") # <-- Track the heaviest CPU task
+    @perf_tracker.measure("PDF Extraction & OCR Time") # <-- Track the heaviest CPU task
     def _parse_pdf_with_ocr(self, file_bytes: bytes) -> str:
         """
         Layout-Aware Parsing: Reads text from a PDF page, then hunts for 
@@ -84,10 +84,10 @@ class DocumentParser:
             full_text.append("\n".join(page_content))
             
         pdf_document.close()
-        telemetry.record_value("Total Images Processed", image_count)
+        perf_tracker.record_value("Total Images Processed", image_count)
         return "\n".join(full_text)
     
-    @telemetry.measure("Total Document Ingestion Time") # <-- Track the full pipeline
+    @perf_tracker.measure("Total Document Ingestion Time") # <-- Track the full pipeline
     def extract_and_chunk(self, file_bytes: bytes, filename: str) -> list:
         """The master method: Extracts text and slices it into overlapping chunks."""
         # 1. Extract the raw text

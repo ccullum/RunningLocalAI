@@ -87,4 +87,4 @@ class MetricsLogger:
         self.session_data.clear()
 
 # Global singleton
-telemetry = MetricsLogger()
+perf_tracker = MetricsLogger()
