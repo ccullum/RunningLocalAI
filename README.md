@@ -13,7 +13,8 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson-06: Adding speech and refactored into a completely decoupled, asynchronous, and scalable Python package](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-06)
 * [Lesson-07: The Web UI & Cognitive Memory Engine](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-07)
 * [Lesson-08: Multimodal Document Parsing & OCR Pipeline](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-08)
-* [Lesson 09: Algorithmic Semantic Routing & Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-08)
+* [Lesson 09: Algorithmic Semantic Routing & Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-09)
+* [Lesson 10: Headless CI/CD Benchmarking & Automated Hardware Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-10)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
@@ -80,6 +81,7 @@ To run this project locally, you will need:
 ## 📬 Contact
 Created by **Christopher Cullum** 
 * LinkedIn: https://www.linkedin.com/in/christophercullum/
+* Substack: https://stableintelligence.substack.com/
 * Portfolio/Website: https://sites.google.com/yemtech.com/christophercullum-portfolio/home
 
 *Currently open to new opportunities in AI and Software Engineering!*

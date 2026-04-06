@@ -114,6 +114,35 @@ class Config:
     # True = Lightning-fast math router. False = Old 8B LLM router.
     USE_SEMANTIC_ROUTER = True
 
+    # --- AUTOMATED TESTING SUITE ---
+    # The exact LLM IDs to hot-swap and test. 
+    # NOTE: The embedding model defined in EMBED_MODEL must remain loaded in LM Studio at all times.
+    TARGET_TEST_MODELS = [
+        "google/gemma-3-4b",
+        "ibm/granite-4-h-tiny",
+        "llama-3.2-3b-instruct",
+        "mistralai/ministral-3-3b-instruct-2512@q4_k_m",
+        "ministral-3-3b-instruct-2512@q5_k_m",
+        "ministral-3-3b-instruct-2512@q8_0",
+        "nvidia/nemotron-3-nano-4b",
+        "phi-3-mini-4k-instruct",
+        "microsoft/phi-4-mini-reasoning",
+        "qwen/qwen3-4b",
+        "qwen/qwen3-4b-2507"
+    ]
+
+    # The Gold Standard prompts designed to trigger specific routing behaviors
+    TEST_PROMPTS = [
+        "What is my name?",  # Tests simple Recall / HRE Router
+        "What are the key points of the document?",  # Tests Document RAG / Semantic Router
+        "Can you explain the theory of relativity in one paragraph?",  # Tests general reasoning
+        "Please summarize our conversation so far."  # Tests Summary routing
+    ]
+    
+    # Telemetry text logging toggles
+    LOG_USER_PROMPT = True
+    LOG_LLM_RESPONSE = True
+
     # --- METRICS & TELEMETRY ---
     ENABLE_METRICS = True
     TELEMETRY_CSV_NAME = "benchmark_report.csv"
