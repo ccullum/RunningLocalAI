@@ -50,6 +50,14 @@ piper/
 .streamlit
 
 # =========================
+# IDE & Environment Files
+# =========================
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+
+# =========================
 # C++ Build Artifacts
 # =========================
 # Compiled dynamic libraries (Python C-extensions)
