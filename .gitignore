@@ -48,3 +48,22 @@ piper/
 
 # streamlit directory and it's files
 .streamlit
+
+# =========================
+# C++ Build Artifacts
+# =========================
+# Compiled dynamic libraries (Python C-extensions)
+*.pyd
+*.so
+*.dylib
+
+# Setuptools and Pip metadata
+*.egg-info/
+build/
+dist/
+*.whl
+
+# MSVC temporary object and linking files
+*.obj
+*.lib
+*.exp

@@ -15,3 +15,4 @@ The code is structured progressively into "Lessons" to demonstrate the iterative
 * **`Lesson 08/`**: Multimodal Document Parsing & OCR Pipeline
 * **`Lesson 09/`**: Algorithmic Semantic Routing & Telemetry
 * **`Lesson 10/`**: Headless CI/CD Benchmarking & Automated Hardware Telemetry
+* **`Lesson 11/`**: High-Performance C++ Semantic Routing

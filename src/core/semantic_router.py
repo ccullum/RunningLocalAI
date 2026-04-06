@@ -1,3 +1,4 @@
+import fast_router
 import math
 from .colors import Colors
 from .config import Config
@@ -35,13 +36,8 @@ class SemanticRouter:
             print(f"{Colors.ERROR}[Router Initialization Error: {e}]{Colors.RESET}")
 
     def _cosine_similarity(self, vec1, vec2):
-        """The core mathematical equation for comparing two ideas."""
-        dot_product = sum(a * b for a, b in zip(vec1, vec2))
-        norm_a = math.sqrt(sum(a * a for a in vec1))
-        norm_b = math.sqrt(sum(b * b for b in vec2))
-        if norm_a == 0 or norm_b == 0:
-            return 0.0
-        return dot_product / (norm_a * norm_b)
+        """The core mathematical equation for comparing two ideas. Now powered by C++."""
+        return fast_router.cosine_similarity(vec1, vec2)
 
     @perf_tracker.measure("Semantic Routing Math & Embed Time")
     def route(self, user_query: str) -> str:

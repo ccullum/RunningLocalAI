@@ -47,3 +47,7 @@ pymupdf
 pytesseract
 #Image processing
 pillow
+
+##Added for Lesson 11
+#C++ binding
+pybind11
