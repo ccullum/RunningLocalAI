@@ -51,3 +51,7 @@ pillow
 ##Added for Lesson 11
 #C++ binding
 pybind11
+
+##Added for Lesson 12
+#Needed for CMake
+scikit-build-core

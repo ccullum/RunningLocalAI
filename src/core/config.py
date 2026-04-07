@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # --- DYNAMIC BASE PATHS ---
 # Anchors paths relative to this config file so it works on any OS
@@ -14,6 +14,13 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
 class Config:
+    # Model Paths
+    NOMIC_MODEL_PATH = os.getenv("NOMIC_MODEL_PATH")
+    CHAT_MODEL_PATH = os.getenv("CHAT_MODEL_PATH")
+    
+    # Engine Parameters
+    EMBEDDING_CTX_LENGTH = 2048
+
     # --- LLM (Brain) ---
     LLM_MODEL = "local-model" 
     LLM_BASE_URL = "http://localhost:1234/v1"
@@ -85,7 +92,9 @@ class Config:
     ROUTER_RECALL_ANCHORS = [
         "What did I say earlier?",
         "Do you remember my name?",
+        "What did I tell you about my name earlier?",
         "What was that fact I told you?",
+        "What have I told you",
         # Document triggers
         "Summarize chapter 1 from the document.",
         "What did the file report.pdf say about this?",
@@ -112,7 +121,8 @@ class Config:
     
     # --- ROUTING ENGINE ---
     # True = Lightning-fast math router. False = Old 8B LLM router.
-    USE_SEMANTIC_ROUTER = True
+    USE_SEMANTIC_ROUTER = True       # We still want routing...
+    USE_LOCAL_CPP_ROUTER = False      # ...but we want the agnostic API/FastEmbed path.
 
     # --- AUTOMATED TESTING SUITE ---
     # The exact LLM IDs to hot-swap and test. 
@@ -137,6 +147,16 @@ class Config:
         "What are the key points of the document?",  # Tests Document RAG / Semantic Router
         "Can you explain the theory of relativity in one paragraph?",  # Tests general reasoning
         "Please summarize our conversation so far."  # Tests Summary routing
+    ]
+
+    #Test prompt for the embedding wrapper POC
+    EM_WRAP_TEST_PROMPT = "What is the capital of France?"
+    # --- SEMANTIC TEST DATA ---
+    SEMANTIC_TEST_QUERY = "search_query: What is the capital of France?"
+    SEMANTIC_TEST_DOCS = [
+        "search_query: Paris is the capital and most populous city of France.",
+        "search_query: The Eiffel Tower is a famous landmark in Paris.",
+        "search_query: I really enjoy eating fresh green apples in the morning."
     ]
     
     # Telemetry text logging toggles

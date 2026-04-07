@@ -1,0 +1,14 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "llama_engine"
+version = "0.0.1"
+
+[tool.scikit-build]
+# Tell scikit-build to build in "Release" mode for max performance
+cmake.build-type = "Release"
+# This enables the "editable" pip install feature for CMake
+editable.mode = "inplace"
+cmake.source-dir = "embedding_engine"

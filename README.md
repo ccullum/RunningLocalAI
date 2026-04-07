@@ -16,6 +16,7 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson 09: Algorithmic Semantic Routing & Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-09)
 * [Lesson 10: Headless CI/CD Benchmarking & Automated Hardware Telemetry](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-10)
 * [Lesson 11: High-Performance C++ Semantic Routing](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-11)
+* [Lesson 12: Custom C++ Inference (The Over-Engineering Experiment)](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-12)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.

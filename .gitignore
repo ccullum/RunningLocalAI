@@ -46,6 +46,9 @@ temp_pyttsx3.wav
 piper/
 *.zip
 
+# Allow CSV files only in the Lesson 12 experiment folder
+!src/lesson-12/experiment/*.csv
+
 # streamlit directory and it's files
 .streamlit
 
@@ -75,3 +78,22 @@ dist/
 *.obj
 *.lib
 *.exp
+
+# =========================
+# CMake & Scikit-Build Artifacts
+# =========================
+_skbuild/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+Makefile
+
+# MSVC generated project files from CMake
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Compiled C++ Binaries and outputs
+bin/

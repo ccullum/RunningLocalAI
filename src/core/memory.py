@@ -166,8 +166,11 @@ class AsyncMemory:
         return "CHAT"
 
     def _route_intent_semantic(self, user_query: str) -> str:
-        # We don't need keyword heuristics anymore, the math handles it all!
-        return self.semantic_router.route(user_query)
+        """Handles the new tuple return from the Semantic Router."""
+        # Unpack the intent and the score
+        intent, score = self.semantic_router.route(user_query)
+        # We return only the intent string to keep the rest of the logic compatible
+        return intent
     
     def _route_intent(self, user_query: str) -> str:
         """Dispatcher: Checks the config flag and fires the appropriate routing engine."""
