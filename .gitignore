@@ -46,8 +46,12 @@ temp_pyttsx3.wav
 piper/
 *.zip
 
+# Ignore the heavy llama.cpp dependency in the experiment folder
+src/Lesson-12/experiment/cpp_inference/
+src/Lesson-12/experiment/cpp_engine/
+
 # Allow CSV files only in the Lesson 12 experiment folder
-!src/lesson-12/experiment/*.csv
+!src/Lesson-12/experiment/*.csv
 
 # streamlit directory and it's files
 .streamlit
