@@ -50,6 +50,9 @@ piper/
 src/Lesson-12/experiment/cpp_inference/
 src/Lesson-12/experiment/cpp_engine/
 
+# Ignore data/logs/*.csv as there may be data that requires to be cleansed.
+data/logs/*.csv
+
 # Allow CSV files only in the Lesson 12 experiment folder
 !src/Lesson-12/experiment/*.csv
 

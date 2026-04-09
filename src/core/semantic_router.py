@@ -1,16 +1,15 @@
-import llama_engine
-import fast_router
-import math
 import os
+import numpy as np
+from fastembed import TextEmbedding
 from .colors import Colors
 from .config import Config
 from utils.metrics import perf_tracker
 
-# --- IMPLEMENTATION A: LEGACY ROUTER (API + FAST_ROUTER MATH) ---
+# --- IMPLEMENTATION A: LEGACY ROUTER (API-based) ---
 class LegacySemanticRouter:
-    """Uses external API for embeddings but C++ for the cosine math."""
+    """Uses external API for embeddings (LM Studio/OpenAI)."""
     def __init__(self, embed_client, embed_model):
-        print(f"{Colors.SYSTEM}[Router] Initializing Legacy Semantic Router...{Colors.RESET}")
+        print(f"{Colors.SYSTEM}[Router] Initializing Legacy Semantic Router (API)...{Colors.RESET}")
         self.embed_client = embed_client
         self.embed_model = embed_model
         self.anchor_vectors = {"RECALL": [], "SUMMARY": []}
@@ -18,108 +17,88 @@ class LegacySemanticRouter:
 
     @perf_tracker.measure("Anchor Pre-computation Time (Legacy)")
     def _precompute_anchors(self):
-        """Embeds the anchor phrases using external API."""
-        print(f"{Colors.SYSTEM}[Router] Pre-computing legacy anchor vectors...{Colors.RESET}")
-        try:
-            for text in Config.ROUTER_RECALL_ANCHORS:
-                # API-based embeddings often don't require specific prefixes, 
-                # but we keep it consistent with how Lesson 11 worked.
-                vec = self.embed_client.embeddings.create(input=text, model=self.embed_model).data[0].embedding
-                self.anchor_vectors["RECALL"].append(vec)
-            for text in Config.ROUTER_SUMMARY_ANCHORS:
-                vec = self.embed_client.embeddings.create(input=text, model=self.embed_model).data[0].embedding
-                self.anchor_vectors["SUMMARY"].append(vec)
-            print(f"{Colors.SYSTEM}[Router] Successfully mapped legacy semantic space.{Colors.RESET}")
-        except Exception as e:
-            print(f"{Colors.ERROR}[Legacy Router Init Error: {e}]{Colors.RESET}")
+        for text in Config.ROUTER_RECALL_ANCHORS:
+            vec = self.embed_client.embeddings.create(input=text, model=self.embed_model).data[0].embedding
+            self.anchor_vectors["RECALL"].append(vec)
+        for text in Config.ROUTER_SUMMARY_ANCHORS:
+            vec = self.embed_client.embeddings.create(input=text, model=self.embed_model).data[0].embedding
+            self.anchor_vectors["SUMMARY"].append(vec)
 
-    @perf_tracker.measure("Semantic Routing Math & Embed Time (Legacy)")
     def route(self, user_query: str):
-        """Calculates intent using API embeddings and fast_router math."""
-        try:
-            query_vec = self.embed_client.embeddings.create(input=user_query, model=self.embed_model).data[0].embedding
-            best_intent = "CHAT"
-            highest_score = 0.0
-            for intent, vectors in self.anchor_vectors.items():
-                for anchor_vec in vectors:
-                    score = fast_router.cosine_similarity(query_vec, anchor_vec)
-                    if score > highest_score:
-                        highest_score = score
-                        best_intent = intent
-            
-            self._log_decision(best_intent, highest_score)
-            
-            # Return tuple to satisfy test script
-            if highest_score >= Config.ROUTER_CONFIDENCE_THRESHOLD:
-                return best_intent, highest_score
-            return "CHAT", highest_score
-        except Exception:
-            return "CHAT", 0.0
+        query_v = self.embed_client.embeddings.create(input=user_query, model=self.embed_model).data[0].embedding
+        return self._find_best_match(query_v)
 
-    def _log_decision(self, intent, score):
-        print(f"{Colors.ROUTER}[Legacy Router]: Best Match = {intent} (Score: {score:.2f}){Colors.RESET}")
-        perf_tracker.record_value("Legacy Router Decision", f"{intent} ({score:.2f})")
+    def _find_best_match(self, query_v):
+        best_intent = "CHAT"
+        highest_score = 0.0
+        for intent, vectors in self.anchor_vectors.items():
+            for ref_v in vectors:
+                # Standard Python math is fine for small anchor sets
+                score = np.dot(query_v, ref_v) / (np.linalg.norm(query_v) * np.linalg.norm(ref_v))
+                if score > highest_score:
+                    highest_score = score
+                    best_intent = intent
+        return best_intent, highest_score
 
-
-# --- IMPLEMENTATION B: NEW LOCAL ROUTER (ALL C++) ---
-class LocalSemanticRouter:
-    """Uses the bare-metal C++ llama_engine for both embeddings and math."""
+# --- IMPLEMENTATION B: AGNOSTIC FAST ROUTER (Local ONNX) ---
+class AgnosticSemanticRouter:
+    """Uses FastEmbed (ONNX) for local, platform-agnostic inference."""
     def __init__(self):
-        print(f"{Colors.SYSTEM}[Router] Initializing Local C++ Embedding Engine...{Colors.RESET}")
-        if not Config.NOMIC_MODEL_PATH:
-            raise ValueError("NOMIC_MODEL_PATH not set in Config.")
+        print(f"{Colors.SYSTEM}[Router] Initializing Agnostic FastEmbed Router...{Colors.RESET}")
         
-        self.engine = llama_engine.EmbeddingEngine(Config.NOMIC_MODEL_PATH)
+        # Ensure the cache stays inside our project data directory
+        cache_path = os.path.join(Config.DATA_DIR, "fastembed_cache")
+        
+        # Load Nomic v1.5 (Agnostic ONNX version)
+        # Note: This will download once (~150MB) to your data directory
+        self.model = TextEmbedding(
+            model_name="nomic-ai/nomic-embed-text-v1.5",
+            cache_dir=cache_path
+        )
+        
         self.anchor_vectors = {"RECALL": [], "SUMMARY": []}
         self._precompute_anchors()
 
-    @perf_tracker.measure("Anchor Pre-computation Time (Local C++)")
+    @perf_tracker.measure("Anchor Pre-computation Time (Agnostic)")
     def _precompute_anchors(self):
-        """Embeds the anchor phrases locally in C++ using 'search_document' prefix."""
-        print(f"{Colors.SYSTEM}[Router] Pre-embedding anchors locally in C++...{Colors.RESET}")
-        # Nomic v1.5 requires 'search_document:' for the reference data (anchors)
-        for text in Config.ROUTER_RECALL_ANCHORS:
-            self.anchor_vectors["RECALL"].append(self.engine.generate_embedding(f"search_document: {text}"))
-        for text in Config.ROUTER_SUMMARY_ANCHORS:
-            self.anchor_vectors["SUMMARY"].append(self.engine.generate_embedding(f"search_document: {text}"))
-        print(f"{Colors.SYSTEM}[Router] Local semantic space mapping complete.{Colors.RESET}")
+        """Batch-embeds the anchor phrases locally."""
+        # Nomic v1.5 requires 'search_query: ' prefix for best results
+        recall_vecs = list(self.model.embed([f"search_query: {t}" for t in Config.ROUTER_RECALL_ANCHORS]))
+        summary_vecs = list(self.model.embed([f"search_query: {t}" for t in Config.ROUTER_SUMMARY_ANCHORS]))
+        
+        self.anchor_vectors["RECALL"] = recall_vecs
+        self.anchor_vectors["SUMMARY"] = summary_vecs
 
-    @perf_tracker.measure("Semantic Routing Math & Embed Time (Local C++)")
+    @perf_tracker.measure("Semantic Routing Math & Embed Time (Agnostic)")
     def route(self, user_query: str):
-        """Calculates intent entirely within the C++ layer using 'search_query' prefix."""
-        # Nomic v1.5 requires 'search_query:' for the user's incoming query
-        query_v = self.engine.generate_embedding(f"search_query: {user_query}")
+        # Generate embedding locally via ONNX
+        query_v = list(self.model.embed([f"search_query: {user_query}"]))[0]
+        
         best_intent = "CHAT"
         highest_score = 0.0
 
         for intent, vectors in self.anchor_vectors.items():
             for ref_v in vectors:
-                score = self.engine.similarity(query_v, ref_v)
+                # Optimized similarity via numpy
+                score = np.dot(query_v, ref_v) / (np.linalg.norm(query_v) * np.linalg.norm(ref_v))
                 if score > highest_score:
                     highest_score = score
                     best_intent = intent
 
-        self._log_decision(best_intent, highest_score)
+        print(f"{Colors.ROUTER}[Agnostic Router]: Best Match = {best_intent} ({highest_score:.2f}){Colors.RESET}")
         
-        # Return tuple to satisfy test script
         if highest_score < Config.ROUTER_CONFIDENCE_THRESHOLD:
             return "CHAT", highest_score
         return best_intent, highest_score
 
-    def _log_decision(self, intent, score):
-        print(f"{Colors.ROUTER}[Local Router]: Best Match = {intent} (Score: {score:.2f}){Colors.RESET}")
-        perf_tracker.record_value("Local Router Decision", f"{intent} ({score:.2f})")
-
-
-# --- THE MAIN WRAPPER ---
+# --- THE UNIFIED FACTORY ---
 class SemanticRouter:
-    """Decides implementation based on Config.USE_LOCAL_CPP_ROUTER."""
     def __init__(self, embed_client=None, embed_model=None):
+        # We repurpose the flag to mean "Local Engine" (Now Agnostic)
         if getattr(Config, "USE_LOCAL_CPP_ROUTER", False):
-            self.implementation = LocalSemanticRouter()
+            self.implementation = AgnosticSemanticRouter()
         else:
             self.implementation = LegacySemanticRouter(embed_client, embed_model)
 
     def route(self, user_query: str):
-        # Delegate routing and return the (intent, score) tuple
         return self.implementation.route(user_query)

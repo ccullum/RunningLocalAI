@@ -17,3 +17,4 @@ The code is structured progressively into "Lessons" to demonstrate the iterative
 * **`Lesson 10/`**: Headless CI/CD Benchmarking & Automated Hardware Telemetry
 * **`Lesson 11/`**: High-Performance C++ Semantic Routing
 * **`Lesson 12/`**: Custom C++ Inference (The Over-Engineering Experiment)
+* **`Lesson 13/`**: Agnostic Speed (The FastEmbed Redemption)

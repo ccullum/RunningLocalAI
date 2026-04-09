@@ -50,8 +50,11 @@ pillow
 
 ##Added for Lesson 11
 #C++ binding
-pybind11
+#pybind11                #The C++ building improvement experiement was not successful
 
 ##Added for Lesson 12
 #Needed for CMake
-scikit-build-core
+#scikit-build-core      #The C++ building improvement experiement was not successful
+
+##Added for Lesson 13
+fastembed

@@ -36,7 +36,22 @@ class AsyncMemory:
         self.turn_count = 0
         self.running_summary = ""
         self.semantic_router = SemanticRouter(self.brain.client, self.embed_model)
+        self.local_engine = None
+        if getattr(Config, "USE_LOCAL_CPP_ROUTER", False):
+            # We tap into the ONNX model already loaded by the router to save RAM
+            self.local_engine = self.semantic_router.implementation.model
 
+    def _get_vector(self, text: str, is_query: bool = False):
+        """Helper to switch between Local Agnostic (FastEmbed) and API embeddings."""
+        if self.local_engine:
+            # FastEmbed / Nomic v1.5 requires these prefixes for best accuracy
+            prefix = "search_query: " if is_query else "search_document: "
+            # .embed() returns an iterator; we convert to list and grab the first result
+            return list(self.local_engine.embed([f"{prefix}{text}"]))[0]
+        else:
+            # Fallback to LM Studio API if Local Engine is disabled
+            return self.brain.client.embeddings.create(input=text, model=self.embed_model).data[0].embedding
+        
     def add_user_message(self, user_input: str):
         """Adds to short-term history and selectively saves facts to long-term memory."""
         self.raw_history.append({"role": "user", "content": user_input})
@@ -56,10 +71,15 @@ class AsyncMemory:
             return
             
         try:
-            print(f"{Colors.MEMORY}[Memory Manager]: Embedding fact into long-term storage...{Colors.RESET}")
-            perf_tracker.record_value("Memory Action", f"Embedding fact into long-term storage.")
+            # Determine metric label for benchmark reporting
+            timer_label = "Local Vector Embedding Time" if self.local_engine else "API Vector Embedding Time"
+            
+            print(f"{Colors.MEMORY}[Memory Manager]: Embedding fact locally...{Colors.RESET}")
+            perf_tracker.record_value("Memory Action", f"Embedding fact locally (Agnostic).")
 
-            vector = self.brain.client.embeddings.create(input=user_input, model=self.embed_model).data[0].embedding
+            perf_tracker.start(timer_label)
+            vector = self._get_vector(user_input, is_query=False)
+            perf_tracker.stop(timer_label)
             
             # THE FWA PAYLOAD
             current_time = int(time.time())
@@ -78,7 +98,6 @@ class AsyncMemory:
             print(f"{Colors.ERROR}[Memory Save Error: {e}]{Colors.RESET}")
             perf_tracker.record_value("Memory Action", f"Save Error: {e}")
 
-
     def add_assistant_message(self, assistant_response: str):
         self.raw_history.append({"role": "assistant", "content": assistant_response})
         self.turn_count += 1
@@ -87,8 +106,6 @@ class AsyncMemory:
         """Takes pre-sliced chunks, embeds them, and saves them to Qdrant."""
         print(f"{Colors.SYSTEM}[Memory Manager]: Embedding {len(chunks)} chunks from '{filename}'...{Colors.RESET}")
         perf_tracker.record_value("Memory Action", f"Embedding {len(chunks)} chunks from '{filename}'")
-
-        
         perf_tracker.start("Vector Embedding Time")
 
         points = []
@@ -204,8 +221,8 @@ class AsyncMemory:
         intent = self._route_intent(user_query)
 
         if intent == "RECALL":
-            print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG{Colors.RESET}")
-            perf_tracker.record_value("HRE Router", f"FWA Vector RAG")
+            print(f"{Colors.ROUTER}[HRE ROUTER]: FWA Vector RAG (Agnostic Local){Colors.RESET}")
+            perf_tracker.record_value("HRE Router", f"FWA Vector RAG (Local)")
             search_queries = [user_query]
             try:
                 deconstructed = self._deconstruct_query(user_query)
@@ -215,9 +232,15 @@ class AsyncMemory:
                 pass 
                 
             raw_results = []
+            # Determine metric label for benchmark reporting
+            timer_label = "Local Vector Search Embedding" if self.local_engine else "API Vector Search Embedding"
+
             for sq in search_queries:
                 try:
-                    vector = self.brain.client.embeddings.create(input=sq, model=self.embed_model).data[0].embedding
+                    perf_tracker.start(timer_label)
+                    vector = self._get_vector(sq, is_query=True)
+                    perf_tracker.stop(timer_label)
+
                     results = self.qdrant.query_points(collection_name=self.collection, 
                                                        query=vector, 
                                                        limit=Config.VECTOR_SEARCH_LIMIT)
@@ -227,25 +250,22 @@ class AsyncMemory:
             
             # THE FWA SCORING ENGINE
             scored_memories = {}
-            current_time = int(time.time()) # Get the exact time right now
+            current_time = int(time.time()) 
             
             for p in raw_results:
                 if p.id not in scored_memories:
                     base_score = p.score
                     freq_weight = p.payload.get("retrieval_count", 1) 
                     
-                    # 1. Calculate Age (How long since it was last accessed?)
                     last_accessed = p.payload.get("last_accessed", current_time)
                     age_in_seconds = current_time - last_accessed
-                    age_in_days = age_in_seconds / 86400.0 # 86400 seconds in a day
+                    age_in_days = age_in_seconds / 86400.0 
                     
-                    # 2. Calculate Decay 
                     decay_multiplier = max(
                         Config.MEMORY_DECAY_FLOOR, 
                         1.0 - (age_in_days * Config.MEMORY_DECAY_RATE)
                     )
                     
-                    # 3. The Stanford Cognitive Equation
                     final_score = base_score * (1 + (Config.MEMORY_REINFORCE_WEIGHT * freq_weight)) * decay_multiplier
                     
                     scored_memories[p.id] = {
