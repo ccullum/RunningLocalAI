@@ -18,6 +18,7 @@ I intend to break out the development of this project based on Lesson's that any
 * [Lesson 11: High-Performance C++ Semantic Routing](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-11)
 * [Lesson 12: Custom C++ Inference (The Over-Engineering Experiment)](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-12)
 * [Lesson 13: Agnostic Speed (The FastEmbed Redemption)](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-13)
+* [Lesson 14: Voice Architecture & Thread Resilience](https://github.com/ccullum/RunningLocalAI/tree/main/src/Lesson-14)
 
 ## 🚀 Features
 * **100% Local Inference:** All processing is done locally via LM Studio, ensuring no data leaves the machine.
