@@ -46,14 +46,11 @@ class AgnosticSemanticRouter:
     def __init__(self):
         print(f"{Colors.SYSTEM}[Router] Initializing Agnostic FastEmbed Router...{Colors.RESET}")
         
-        # Ensure the cache stays inside our project data directory
-        cache_path = os.path.join(Config.DATA_DIR, "fastembed_cache")
-        
         # Load Nomic v1.5 (Agnostic ONNX version)
         # Note: This will download once (~150MB) to your data directory
         self.model = TextEmbedding(
             model_name="nomic-ai/nomic-embed-text-v1.5",
-            cache_dir=cache_path
+            cache_dir=Config.FASTEMBED_CACHE_DIR
         )
         
         self.anchor_vectors = {"RECALL": [], "SUMMARY": []}

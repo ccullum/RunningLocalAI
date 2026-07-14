@@ -22,7 +22,10 @@ class AsyncMemory:
         # Use config variables
         self.embed_model = Config.EMBED_MODEL
         self.collection = Config.COLLECTION_NAME
-        self.qdrant = QdrantClient(path=Config.QDRANT_STORAGE_PATH)
+        self.qdrant = QdrantClient(
+            path=Config.QDRANT_STORAGE_PATH,
+            force_disable_check_same_thread=True
+        )
         
         if not self.qdrant.collection_exists(self.collection):
             self.qdrant.create_collection(

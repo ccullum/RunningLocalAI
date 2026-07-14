@@ -9,6 +9,7 @@ CORE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(CORE_DIR, "..", "..", "data"))
 TEMP_DIR = os.path.join(DATA_DIR, "temp")
 LOG_DIR = os.path.join(DATA_DIR, "logs")
+
 # This runs immediately when config.py is imported!
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -30,23 +31,38 @@ class Config:
     LLM_CHAT_TEMPERATURE = 0.3
     LLM_CHAT_MAX_TOKENS = 1024
     LLM_TASK_TEMPERATURE = 0.0
-    LLM_TASK_MAX_TOKENS = 50
+    LLM_TASK_MAX_TOKENS = 1024
     
     # --- RAG & MEMORY ---
     EMBED_MODEL = "text-embedding-nomic-embed-text-v1.5@q8_0"
     COLLECTION_NAME = "jarvis_memory"
     QDRANT_STORAGE_PATH = os.path.join(DATA_DIR, "qdrant_storage")
+    FASTEMBED_CACHE_DIR = os.path.join(DATA_DIR, "fastembed_cache")
     CHUNK_SIZE = 1000
     CHUNK_OVERLAP = 200
 
     # --- AUDIO (Ear & Mouth) ---
-    STT_MODEL = "tiny.en"
+    STT_MODEL = "small"             
     EAR_DEVICE = "cpu"
     EAR_COMPUTE_TYPE = "int8"   
     PIPER_DIR = os.path.join(DATA_DIR, "piper")
     PIPER_MODEL_PATH = os.path.join(DATA_DIR, "voices", "piper-lessac.onnx")
-    HOTKEY_KILL = 'esc'
     AUDIO_TEMP_DIR = TEMP_DIR
+    
+    # Unified PyAudio and Keyboard Stream Parameters
+    AUDIO_SAMPLE_RATE = 16000      
+    AUDIO_CHANNELS = 1             
+    AUDIO_CHUNK_SIZE = 1024        
+    GLOBAL_PTT_HOTKEY = "ctrl+shift+space"
+    HOTKEY_KILL = "esc"
+    
+    # Centralized Audio Engine Variables
+    AUDIO_PLAYBACK_CHUNK = 2048              # Output buffer to prevent choppy audio
+    AUDIO_DEBOUNCE_TIME = 0.5                # Minimum delay (seconds) between key taps
+    AUDIO_PARAGRAPH_SILENCE_DURATION = 1.0   # Pause length (seconds) between paragraphs
+    AUDIO_MAX_CONSECUTIVE_ERRORS = 10        # Safety threshold to shut down dead streams
+    STT_BEAM_SIZE = 1                        # 1 = Greedy search (stops hallucinations)
+    STT_LANGUAGE = "en"                      # Forces Whisper to listen only for English
 
     # --- VAD (Voice Activity Detection) TUNING ---
     EAR_AMBIENT_DURATION = 0.5
@@ -58,16 +74,16 @@ class Config:
     TESSERACT_CMD_PATH = os.getenv("TESSERACT_CMD_PATH")
 
     # --- PROMPT ENGINEERING ---
-    # Prompts
     SYSTEM_PROMPT = (
         "You are JARVIS, a highly intelligent and concise AI. "
+        "Your default responses should be in English, unless otherwise instructed."
         "When the user says 'I', 'me', or 'my', they are referring to themselves. "
         "The user may also extract document text and provide it to you in the context block below. "
         "Use the provided context to answer questions about the user or the provided documents. "
         "If the answer is not in the context below, DO NOT guess, do not make up an answer, and do not apologize about your capabilities. Say you don't know."
     )
     UPDATE_SUMMARY_PROMPT = "Summarize the key points of the conversation so far in one short paragraph."
-    # Templates
+    
     DECONSTRUCT_QUERY_TEMPLATE = (
         "You are a database query generator. "
         "Convert the following question into a declarative statement to search a database. "
@@ -83,19 +99,16 @@ class Config:
         "3. CHAT: Use for EVERYTHING ELSE."
         "Respond with EXACTLY ONE WORD: [RECALL, SUMMARY, or CHAT]."
     )
-    # Structural Injection Templates
     CONTEXT_INJECTION_TEMPLATE = "\n\n[FACTS AND CONTEXT ABOUT THE USER OR DOCUMENTS]\n{context}"
     SUMMARY_INJECTION_TEMPLATE = "\n\n[CONVERSATION SUMMARY]\n{summary}"
 
     # --- SEMANTIC ROUTER ANCHORS ---
-    # These dictate the "center of gravity" for each intent
     ROUTER_RECALL_ANCHORS = [
         "What did I say earlier?",
         "Do you remember my name?",
         "What did I tell you about my name earlier?",
         "What was that fact I told you?",
         "What have I told you",
-        # Document triggers
         "Summarize chapter 1 from the document.",
         "What did the file report.pdf say about this?",
         "Give me a breakdown of the specific pdf file.",
@@ -107,7 +120,6 @@ class Config:
     ]
 
     ROUTER_SUMMARY_ANCHORS = [
-        # Keep this strictly for conversational/chat summaries
         "Summarize this text.",
         "What is the summary of this chat",
         "Give me the TLDR.",
@@ -115,25 +127,20 @@ class Config:
         "I would appreciate it if you could recap our conversation."
     ]   
 
-    # We define a strict similarity threshold. 
-    # If the user's prompt doesn't score at least this high against ANY anchor, it safely defaults to CHAT.
     ROUTER_CONFIDENCE_THRESHOLD = 0.65
     
     # --- ROUTING ENGINE ---
-    # True = Lightning-fast math router. False = Old 8B LLM router.
-    USE_SEMANTIC_ROUTER = True       # We still want routing...
-    USE_LOCAL_CPP_ROUTER = False      # ...but we want the agnostic API/FastEmbed path.
+    USE_SEMANTIC_ROUTER = True       
+    USE_LOCAL_CPP_ROUTER = True       
 
     # --- AUTOMATED TESTING SUITE ---
-    # The exact LLM IDs to hot-swap and test. 
-    # NOTE: The embedding model defined in EMBED_MODEL must remain loaded in LM Studio at all times.
     TARGET_TEST_MODELS = [
         "google/gemma-3-4b",
         "ibm/granite-4-h-tiny",
         "llama-3.2-3b-instruct",
         "mistralai/ministral-3-3b-instruct-2512@q4_k_m",
-        "ministral-3-3b-instruct-2512@q5_k_m",
-        "ministral-3-3b-instruct-2512@q8_0",
+        "mistralai/ministral-3-3b-instruct-2512@q5_k_m",
+        "mistralai/ministral-3-3b-instruct-2512@q8_0",
         "nvidia/nemotron-3-nano-4b",
         "phi-3-mini-4k-instruct",
         "microsoft/phi-4-mini-reasoning",
@@ -141,17 +148,14 @@ class Config:
         "qwen/qwen3-4b-2507"
     ]
 
-    # The Gold Standard prompts designed to trigger specific routing behaviors
     TEST_PROMPTS = [
-        "What is my name?",  # Tests simple Recall / HRE Router
-        "What are the key points of the document?",  # Tests Document RAG / Semantic Router
-        "Can you explain the theory of relativity in one paragraph?",  # Tests general reasoning
-        "Please summarize our conversation so far."  # Tests Summary routing
+        "What is my name?",  
+        "What are the key points of the document?",  
+        "Can you explain the theory of relativity in one paragraph?",  
+        "Please summarize our conversation so far."  
     ]
 
-    #Test prompt for the embedding wrapper POC
     EM_WRAP_TEST_PROMPT = "What is the capital of France?"
-    # --- SEMANTIC TEST DATA ---
     SEMANTIC_TEST_QUERY = "search_query: What is the capital of France?"
     SEMANTIC_TEST_DOCS = [
         "search_query: Paris is the capital and most populous city of France.",
@@ -159,7 +163,6 @@ class Config:
         "search_query: I really enjoy eating fresh green apples in the morning."
     ]
     
-    # Telemetry text logging toggles
     LOG_USER_PROMPT = True
     LOG_LLM_RESPONSE = True
 
@@ -167,26 +170,21 @@ class Config:
     ENABLE_METRICS = True
     TELEMETRY_CSV_NAME = "benchmark_report.csv"
     TELEMETRY_CSV_PATH = os.path.join(LOG_DIR, TELEMETRY_CSV_NAME)
-    TELEMETRY_POLL_INTERVAL = 0.5  # How often (in seconds) to poll CPU/RAM
+    TELEMETRY_POLL_INTERVAL = 0.5  
 
     # --- LLM TASK TUNING ---
-    # Standardizing the token limits for internal "thinking" tasks
     LLM_ROUTING_MAX_TOKENS = 10
     LLM_DECONSTRUCT_MAX_TOKENS = 15
     LLM_SUMMARY_MAX_TOKENS = 100
     
     # --- COGNITIVE TUNING (The "Brain" Math) ---
-    # Controls how fast memories "fade" or "strengthen"
-    MEMORY_DECAY_FLOOR = 0.5        # Max 50% penalty for old/ignored memories
-    MEMORY_DECAY_RATE = 0.01        # Loses 1% power per day of inactivity
-    MEMORY_REINFORCE_WEIGHT = 0.1   # Gain 10% power per retrieval
+    MEMORY_DECAY_FLOOR = 0.5        
+    MEMORY_DECAY_RATE = 0.01        
+    MEMORY_REINFORCE_WEIGHT = 0.1   
     
     # --- FILTERS & HEURISTICS ---
-    # Minimum characters required to bother embedding a chunk
     MIN_CHUNK_CHARACTER_COUNT = 50
-    # How often to trigger the automatic rolling summary (every X turns)
     SUMMARY_TRIGGER_TURN_COUNT = 5
-    # The limit for context pieces sent to the LLM (The fix for your Chapter 1 issue!)
     CONTEXT_CHUNKS_LIMIT = 5
     VECTOR_SEARCH_LIMIT = 7  
 
